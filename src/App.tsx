@@ -62,6 +62,8 @@ const isDevEnvironment = import.meta.env.DEV;
 const useRealApi = import.meta.env.VITE_USE_REAL_API === 'true';
 
 const api =
+    const [error, setError] = useState<string | null>(null);  // ← 加上这行！解决 setError 报错
+  const currentGroup = groups.find(g => g.id === selectedTab); // ← 加上这行！解决 currentGroup 报错
   isDevEnvironment && !useRealApi
     ? new MockNavigationClient()
     : new NavigationClient(isDevEnvironment ? 'http://localhost:8788/api' : '/api');
@@ -649,7 +651,7 @@ function App() {
                   created_at: g.created_at,
                   updated_at: g.updated_at,
                 }))}
-                sites={groups.flatMap(g => g.sites || [])}
+                sites={groups.flatMap(g => g.sites ?? [])}
               />
             </Box>
           )}
