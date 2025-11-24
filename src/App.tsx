@@ -1,527 +1,367 @@
-// src/App.tsx —— 2025 年终极版顶部 Tabs 导航站（正式版）
-import { useState, useEffect, useMemo } from 'react';
-import { NavigationClient } from './API/client';
-import { MockNavigationClient } from './API/mock';
-import { Site, Group } from './API/http';
-import { GroupWithSites } from './types';
-import ThemeToggle from './components/ThemeToggle';
-import GroupCard from './components/GroupCard';
-import LoginForm from './components/LoginForm';
-import SearchBox from './components/SearchBox';
-import { sanitizeCSS, isSecureUrl, extractDomain } from './utils/url';
-import './App.css';
-
-// MUI
+import React, { useState, useEffect } from 'react';
 import {
-  Container,
-  Typography,
-  Box,
-  Button,
-  CircularProgress,
-  Alert,
-  Stack,
-  Paper,
-  createTheme,
-  ThemeProvider,
-  CssBaseline,
-  TextField,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  IconButton,
-  Menu,
-  MenuItem,
-  Divider,
-  ListItemIcon,
-  ListItemText,
-  Snackbar,
-  InputAdornment,
-  Slider,
-  FormControlLabel,
-  Switch,
-  AppBar,
-  Tabs,
-  Tab,
-  Toolbar,
+  Container, Typography, Box, Button, Alert, Stack, Paper,
+  createTheme, ThemeProvider, CssBaseline, TextField,
+  Dialog, DialogActions, DialogContent, DialogTitle,
+  IconButton, Menu, MenuItem, Divider, ListItemIcon, ListItemText,
+  Snackbar, InputAdornment, AppBar, Tabs, Tab, Toolbar, Avatar
 } from '@mui/material';
-import SortIcon from '@mui/icons-material/Sort';
-import SaveIcon from '@mui/icons-material/Save';
-import CancelIcon from '@mui/icons-material/Cancel';
-import GitHubIcon from '@mui/icons-material/GitHub';
-import AddIcon from '@mui/icons-material/Add';
-import CloseIcon from '@mui/icons-material/Close';
-import SettingsIcon from '@mui/icons-material/Settings';
-import FileUploadIcon from '@mui/icons-material/FileUpload';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import LogoutIcon from '@mui/icons-material/Logout';
-import MenuIcon from '@mui/icons-material/Menu';
-import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import {
+  Add as AddIcon, Search as SearchIcon, Delete as DeleteIcon,
+  Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon,
+  Logout as LogoutIcon, Login as LoginIcon, GitHub as GitHubIcon,
+  MoreVert as MoreVertIcon, DarkMode as DarkModeIcon, LightMode as LightModeIcon,
+  ImportExport as ImportExportIcon, FileDownload as FileDownloadIcon,
+  FileUpload as FileUploadIcon, Settings as SettingsIcon
+} from '@mui/icons-material';
 
-const isDev = import.meta.env.DEV;
-const useRealApi = import.meta.env.VITE_USE_REAL_API === 'true';
-const api = isDev && !useRealApi
-  ? new MockNavigationClient()
-  : new NavigationClient(isDev ? 'http://localhost:8788/api' : '/api');
+const theme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: { main: '#00d4ff' },
+    background: { default: '#0a1a2f', paper: 'rgba(255, 255, 255, 0.07)' },
+  },
+  components: {
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+        }
+      }
+    }
+  }
+});
 
-enum SortMode {
-  None,
-  GroupSort,
-  SiteSort,
+interface LinkItem {
+  id: string;
+  name: string;
+  url: string;
+  icon?: string;
+  description?: string;
 }
 
-const DEFAULT_CONFIGS: Record<string, string> = {
-  'site.title': '导航站',
-  'site.name': '导航站',
-  'site.customCss': '',
-  'site.backgroundImage': '',
-  'site.backgroundOpacity': '0.15',
-  'site.iconApi': 'https://www.faviconextractor.com/favicon/{domain}?larger=true',
-  'site.searchBoxEnabled': 'true',
-  'site.searchBoxGuestEnabled': 'true',
-};
+interface Group {
+  id: string;
+  name: string;
+  links: LinkItem[];
+}
 
 export default function App() {
-  // 主题
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-  const theme = useMemo(() => createTheme({ palette: { mode: darkMode ? 'dark' : 'light' } }), [darkMode]);
-  const toggleTheme = () => {
-    setDarkMode(prev => {
-      localStorage.setItem('theme', prev ? 'light' : 'dark');
-      return !prev;
-    });
-  };
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [tabValue, setTabValue] = useState(0);
+  const [search, setSearch] = useState('');
+  const [darkMode] = useState(true);
+  const [loginDialog, setLoginDialog] = useState(false);
+  const [password, setPassword] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '' });
 
-  // 数据 & 状态
-  const [groups, setGroups] = useState<GroupWithSites[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState<number | null>(null);
-  const [sortMode, setSortMode] = useState<SortMode>(SortMode.None);
-  const [currentSortingGroupId, setCurrentSortingGroupId] = useState<number | null>(null);
+  // 你的密码（可改）
+  const ADMIN_PASSWORD = '123456';
 
-  // 认证
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAuthRequired, setIsAuthRequired] = useState(false);
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const viewMode: 'readonly' | 'edit' = isAuthenticated ? 'edit' : 'readonly';
-
-  // 配置
-  const [configs, setConfigs] = useState(DEFAULT_CONFIGS);
-  const [tempConfigs, setTempConfigs] = useState(DEFAULT_CONFIGS);
-  const [openConfig, setOpenConfig] = useState(false);
-
-  // 对话框
-  const [openAddGroup, setOpenAddGroup] = useState(false);
-  const [openAddSite, setOpenAddSite] = useState(false);
-  const [newGroup, setNewGroup] = useState<Partial<Group>>({ name: '', is_public: 1 });
-  const [newSite, setNewSite] = useState<Partial<Site>>({ name: '', url: '', group_id: 0, is_public: 1 });
-
-  // 菜单 & 导入
-  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const [openImport, setOpenImport] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [importLoading, setImportLoading] = useState(false);
-
-  // 提示
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-
-  const handleError = (msg: string) => {
-    setSnackbarMessage(msg);
-    setSnackbarOpen(true);
-  };
-
-  // 初始化
   useEffect(() => {
-    (async () => {
-      setIsAuthChecking(true);
-      try {
-        const auth = await api.checkAuthStatus();
-        setIsAuthenticated(!!auth);
-        await Promise.all([fetchData(), fetchConfigs()]);
-      } catch {
-        await Promise.all([fetchData(), fetchConfigs()]);
-      } finally {
-        setIsAuthChecking(false);
-      }
-    })();
+    const saved = localStorage.getItem('navihive-data');
+    if (saved) {
+      const data = JSON.parse(saved);
+      setGroups(data.groups || []);
+      setIsLoggedIn(data.isLoggedIn || false);
+    }
   }, []);
 
   useEffect(() => {
-    if (groups.length > 0 && selectedTab === null) {
-      setSelectedTab(groups[0].id);
-    }
-  }, [groups]);
+    localStorage.setItem('navihive-data', JSON.stringify({ groups, isLoggedIn }));
+  }, [groups, isLoggedIn]);
 
-  useEffect(() => {
-    document.title = configs['site.title'] || '导航站';
-  }, [configs]);
+  const currentGroup = groups[tabValue] || { links: [] };
+  const filteredLinks = currentGroup.links.filter(link =>
+    link.name.toLowerCase().includes(search.toLowerCase()) ||
+    (link.description || '').toLowerCase().includes(search.toLowerCase())
+  );
 
-  useEffect(() => {
-    const style = document.getElementById('custom-style') || document.createElement('style');
-    style.id = 'custom-style';
-    style.textContent = sanitizeCSS(configs['site.customCss'] || '');
-    document.head.appendChild(style);
-    return () => style.remove();
-  }, [configs]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      setGroups(await api.getGroupsWithSites());
-    } finally {
-      setLoading(false);
+  const handleLogin = () => {
+    if (password === ADMIN_PASSWORD) {
+      setIsLoggedIn(true);
+      setLoginDialog(false);
+      setPassword('');
+      setSnackbar({ open: true, message: '登录成功！现在可以编辑了' });
+    } else {
+      setSnackbar({ open: true, message: '密码错误！' });
     }
   };
 
-  const fetchConfigs = async () => {
-    try {
-      const data = await api.getConfigs();
-      const merged = { ...DEFAULT_CONFIGS, ...data };
-      setConfigs(merged);
-      setTempConfigs(merged);
-    } catch {}
-  };
-
-  const handleLogin = async (username: string, password: string) => {
-    setLoginLoading(true);
-    setLoginError(null);
-    try {
-      const res = await api.login(username, password, true);
-      if (res?.success) {
-        setIsAuthenticated(true);
-        setIsAuthRequired(false);
-        await fetchData();
-      } else {
-        setLoginError('用户名或密码错误');
-      }
-    } catch {
-      setLoginError('登录失败');
-    } finally {
-      setLoginLoading(false);
+  const addGroup = () => {
+    const name = prompt('新分组名称：', '新分组');
+    if (name) {
+      setGroups([...groups, { id: Date.now().toString(), name, links: [] }]);
+      setTabValue(groups.length);
     }
   };
 
-  const handleLogout = async () => {
-    await api.logout();
-    setIsAuthenticated(false);
-    await fetchData();
-    handleError('已退出登录');
-    setMenuAnchorEl(null);
-  };
-
-  const handleSaveGroupOrder = async () => {
-    try {
-      const orders = groups.map((g, i) => ({ id: g.id!, order_num: i }));
-      await api.updateGroupOrder(orders);
-      await fetchData();
-      setSortMode(SortMode.None);
-      handleError('分组顺序已保存');
-    } catch {
-      handleError('保存失败');
+  const deleteGroup = (index: number) => {
+    if (window.confirm(`确定删除分组 "${groups[index].name}" 吗？`)) {
+      setGroups(groups.filter((_, i) => i !== index));
+      setTabValue(Math.max(0, tabValue - 1));
     }
   };
 
-  const handleCreateGroup = async () => {
-    if (!newGroup.name?.trim()) return handleError('分组名称不能为空');
-    await api.createGroup({ ...newGroup, order_num: groups.length } as Group);
-    setOpenAddGroup(false);
-    await fetchData();
-  };
-
-  const handleCreateSite = async () => {
-    if (!newSite.name?.trim() || !newSite.url?.trim()) return handleError('名称和URL不能为空');
-    await api.createSite(newSite as Site);
-    setOpenAddSite(false);
-    await fetchData();
-  };
-
-  const handleSaveConfig = async () => {
-    for (const [k, v] of Object.entries(tempConfigs)) {
-      if (configs[k] !== v) await api.setConfig(k, v);
+  const renameGroup = (index: number) => {
+    const newName = prompt('新分组名称：', groups[index].name);
+    if (newName) {
+      const newGroups = [...groups];
+      newGroups[index].name = newName;
+      setGroups(newGroups);
     }
-    setConfigs(tempConfigs);
-    setOpenConfig(false);
   };
 
-  const handleExportData = () => {
-    const data = {
-      groups: groups.map(g => ({ id: g.id, name: g.name, order_num: g.order_num })),
-      sites: groups.flatMap(g => g.sites || []),
-      configs,
-      version: '1.0',
-      exportDate: new Date().toISOString(),
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const addLink = () => {
+    const name = prompt('网站名称：');
+    const url = prompt('网址（带 https://）：');
+    if (name && url) {
+      const newGroups = [...groups];
+      newGroups[tabValue].links.push({
+        id: Date.now().toString(),
+        name,
+        url: url.startsWith('http') ? url : 'https://' + url,
+        description: prompt('描述（可留空）：') || undefined
+      });
+      setGroups(newGroups);
+    }
+  };
+
+  const deleteLink = (linkId: string) => {
+    if (window.confirm('确定删除此链接？')) {
+      const newGroups = [...groups];
+      newGroups[tabValue].links = newGroups[tabValue].links.filter(l => l.id !== linkId);
+      setGroups(newGroups);
+    }
+  };
+
+  const exportData = () => {
+    const data = JSON.stringify({ groups }, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `导航站备份_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = 'navihive-backup.json';
     a.click();
-    URL.revokeObjectURL(url);
   };
 
-  if (isAuthChecking) {
-    return (
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}>
-          <CircularProgress size={60} />
-        </Box>
-      </ThemeProvider>
-    );
-  }
+  const importData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target?.result as string);
+          setGroups(data.groups || []);
+          setSnackbar({ open: true, message: '导入成功！' });
+        } catch {
+          setSnackbar({ open: true, message: '文件格式错误！' });
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0a1a2f 0%, #0f0f2f 100%)', pb: 8 }}>
+        {/* 第一行：标题 + 登录/设置按钮 */}
+        <AppBar position="static" color="transparent" elevation={0}>
+          <Toolbar sx={{ justifyContent: 'space-between', minHeight: '80px !important' }}>
+            <Typography variant="h4" sx={{ fontWeight: 'bold', background: 'linear-gradient(90deg, #00d4ff, #ffffff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Netsurf导航站
+            </Typography>
+            <Stack direction="row" spacing={2}>
+              {isLoggedIn && (
+                <>
+                  <IconButton color="primary" onClick={addGroup}>
+                    <AddIcon />
+                  </IconButton>
+                  <label>
+                    <FileUploadIcon sx={{ cursor: 'pointer', color: 'primary.main' }} />
+                    <input type="file" accept=".json" hidden onChange={importData} />
+                  </label>
+                  <IconButton color="primary" onClick={exportData}>
+                    <FileDownloadIcon />
+                  </IconButton>
+                </>
+              )}
+              <IconButton color="primary" onClick={() => setLoginDialog(true)}>
+                {isLoggedIn ? <SettingsIcon /> : <LoginIcon />}
+              </IconButton>
+            </Stack>
+          </Toolbar>
+        </AppBar>
 
-      {/* 全局错误提示 */}
-      <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={() => setSnackbarOpen(false)}>
-        <Alert severity="error" onClose={() => setSnackbarOpen(false)}>{snackbarMessage}</Alert>
-      </Snackbar>
-
-      {/* 登录弹窗 */}
-      <Dialog open={isAuthRequired && !isAuthenticated} onClose={() => setIsAuthRequired(false)}>
-        <LoginForm onLogin={handleLogin} loading={loginLoading} error={loginError} />
-      </Dialog>
-
-      <Box sx={{ minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
-        {/* 背景图 */}
-        {configs['site.backgroundImage'] && isSecureUrl(configs['site.backgroundImage']) && (
-          <Box
-            sx={{
-              position: 'absolute',
-              inset: 0,
-              background: `url(${configs['site.backgroundImage']}) center/cover no-repeat`,
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                inset: 0,
-                bgcolor: darkMode ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.85)',
-                opacity: 1 - Number(configs['site.backgroundOpacity'] || 0.15),
-              },
-            }}
-          />
-        )}
-
-        <Container maxWidth="xl" sx={{ py: 3, position: 'relative', zIndex: 2 }}>
-          {/* 顶部导航栏 */}
-          <AppBar position="sticky" color="transparent" elevation={0} sx={{ mb: 4, backdropFilter: 'blur(12px)', bgcolor: 'background.paper' + 'dd' }}>
-            <Toolbar sx={{ justifyContent: 'space-between' }}>
-              <Typography variant="h4" fontWeight="bold">{configs['site.name']}</Typography>
-
-              <Tabs
-                value={selectedTab || false}
-                onChange={(_, v) => setSelectedTab(v)}
-                variant="scrollable"
-                scrollButtons="auto"
-                allowScrollButtonsMobile
-                sx={{ '.MuiTabs-indicator': { height: 3, borderRadius: 1 } }}
-              >
-                {groups.map(g => (
-                  <Tab key={g.id} label={g.name} value={g.id} />
-                ))}
-              </Tabs>
-
-              <Stack direction="row" spacing={1} alignItems="center">
-                {sortMode !== SortMode.None ? (
-                  <>
-                    <Button variant="contained" size="small" startIcon={<SaveIcon />} onClick={handleSaveGroupOrder}>
-                      保存
-                    </Button>
-                    <Button variant="outlined" size="small" startIcon={<CancelIcon />} onClick={() => setSortMode(SortMode.None)}>
-                      取消
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    {viewMode === 'edit' && (
-                      <>
-                        <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setOpenAddGroup(true)}>
-                          新分组
-                        </Button>
-                        <IconButton onClick={e => setMenuAnchorEl(e.currentTarget)}>
-                          <MenuIcon />
+        {/* 第二行：主菜单 Tabs */}
+        <Box sx={{ bgcolor: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} centered variant="scrollable" scrollButtons="auto">
+            {groups.map((group, i) => (
+              <Tab
+                key={group.id}
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {group.name}
+                    {isLoggedIn && (
+                      <Box>
+                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); renameGroup(i); }}>
+                          <EditIcon fontSize="small" />
                         </IconButton>
-                      </>
+                        {groups.length > 1 && (
+                          <IconButton size="small" onClick={(e) => { e.stopPropagation(); deleteGroup(i); }}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                      </Box>
                     )}
-                    {viewMode === 'readonly' && (
-                      <Button variant="contained" size="small" onClick={() => setIsAuthRequired(true)}>
-                        登录管理
-                      </Button>
-                    )}
-                  </>
+                  </Box>
+                }
+              />
+            ))}
+          </Tabs>
+        </Box>
+
+        {/* 搜索框 */}
+        <Container maxWidth="lg" sx={{ mt: 4 }}>
+          <Paper sx={{ p: 2, mb: 4 }}>
+            <TextField
+              fullWidth
+              placeholder="搜索站点、描述..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
+              }}
+            />
+          </Paper>
+
+          {/* 磨砂玻璃卡片网格 */}
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+            gap: 3,
+            mt: 2
+          }}>
+            {filteredLinks.map((link) => (
+              <Paper
+                key={link.id}
+                component="a"
+                href={link.url}
+                target="_blank"
+                elevation={6}
+                sx={{
+                  p: 3,
+                  textAlign: 'center',
+                  borderRadius: 4,
+                  transition: 'all 0.3s',
+                  bgcolor: 'rgba(255, 255, 255, 0.08)',
+                  '&:hover': { transform: 'translateY(-8px)', boxShadow: '0 20px 40px rgba(0,212,255,0.3)' },
+                  position: 'relative',
+                  textDecoration: 'none',
+                  color: 'inherit'
+                }}
+              >
+                {isLoggedIn && (
+                  <IconButton
+                    size="small"
+                    sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(0,0,0,0.5)' }}
+                    onClick={(e) => { e.preventDefault(); deleteLink(link.id); }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                 )}
-                <ThemeToggle darkMode={darkMode} onToggle={toggleTheme} />
-              </Stack>
-            </Toolbar>
-          </AppBar>
+                <Avatar
+                  src={link.icon || `https://www.google.com/s2/favicons?domain=${link.url}&sz=128`}
+                  sx={{ width: 56, height: 56, mx: 'auto', mb: 2 }}
+                />
+                <Typography variant="subtitle1" noWrap sx={{ fontWeight: 'bold' }}>
+                  {link.name}
+                </Typography>
+                {link.description && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: '0.8rem', opacity: 0.8 }}>
+                    {link.description}
+                  </Typography>
+                )}
+              </Paper>
+            ))}
 
-          {/* 搜索框 */}
-          {configs['site.searchBoxEnabled'] === 'true' && (viewMode === 'edit' || configs['site.searchBoxGuestEnabled'] === 'true') && (
-            <Box sx={{ mb: 4, maxWidth: 600, mx: 'auto' }}>
-              <SearchBox groups={groups} sites={groups.flatMap(g => g.sites || [])} />
-            </Box>
-          )}
-
-          {/* 主内容 */}
-          {loading ? (
-            <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 400 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            groups
-              .filter(g => g.id === selectedTab)
-              .map(group => (
-                <Box key={group.id} id={`group-${group.id}`}>
-                  <GroupCard
-                    group={group}
-                    sortMode={sortMode === SortMode.SiteSort && currentSortingGroupId === group.id ? 'SiteSort' : 'None'}
-                    currentSortingGroupId={currentSortingGroupId}
-                    viewMode={viewMode}
-                    onUpdate={async (site) => { if (site.id) await api.updateSite(site.id, site); await fetchData(); }}
-                    onDelete={async (id) => { await api.deleteSite(id); await fetchData(); }}
-                    onSaveSiteOrder={async (gid, sites) => {
-                      const orders = sites.map((s, i) => ({ id: s.id!, order_num: i }));
-                      await api.updateSiteOrder(orders);
-                      await fetchData();
-                      setSortMode(SortMode.None);
-                    }}
-                    onStartSiteSort={() => {
-                      setSortMode(SortMode.SiteSort);
-                      setCurrentSortingGroupId(group.id!);
-                    }}
-                    onAddSite={(gid) => {
-                      setNewSite({ ...newSite, group_id: gid, order_num: (group.sites?.length || 0) + 1 });
-                      setOpenAddSite(true);
-                    }}
-                    onUpdateGroup={async (g) => { if (g.id) await api.updateGroup(g.id, g); await fetchData(); }}
-                    onDeleteGroup={async (id) => { await api.deleteGroup(id); await fetchData(); }}
-                    configs={configs}
-                  />
-                </Box>
-              ))
-          )}
+            {isLoggedIn && (
+              <Paper
+                sx={{
+                  p: 3,
+                  textAlign: 'center',
+                  borderRadius: 4,
+                  bgcolor: 'rgba(0, 212, 255, 0.15)',
+                  border: '2px dashed rgba(0, 212, 255, 0.5)',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'rgba(0, 212, 255, 0.25)' }
+                }}
+                onClick={addLink}
+              >
+                <AddIcon sx={{ fontSize: 48, color: '#00d4ff' }} />
+                <Typography variant="h6" color="primary">添加链接</Typography>
+              </Paper>
+            )}
+          </Box>
         </Container>
 
-        {/* 右上角菜单 */}
-        <Menu anchorEl={menuAnchorEl} open={Boolean(menuAnchorEl)} onClose={() => setMenuAnchorEl(null)}>
-          <MenuItem onClick={() => { setSortMode(SortMode.GroupSort); setMenuAnchorEl(null); }}>
-            <ListItemIcon><SortIcon /></ListItemIcon>编辑分组排序
-          </MenuItem>
-          <MenuItem onClick={() => { setOpenConfig(true); setMenuAnchorEl(null); }}>
-            <ListItemIcon><SettingsIcon /></ListItemIcon>网站设置
-          </MenuItem>
-          <Divider />
-          <MenuItem onClick={() => { handleExportData(); setMenuAnchorEl(null); }}>
-            <ListItemIcon><FileDownloadIcon /></ListItemIcon>导出数据
-          </MenuItem>
-          <MenuItem onClick={() => { setOpenImport(true); setMenuAnchorEl(null); }}>
-            <ListItemIcon><FileUploadIcon /></ListItemIcon>导入数据
-          </MenuItem>
-          {isAuthenticated && (
-            <>
-              <Divider />
-              <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
-                <ListItemIcon sx={{ color: 'error.main' }}><LogoutIcon /></ListItemIcon>退出登录
-              </MenuItem>
-            </>
-          )}
-        </Menu>
-
-        {/* 新增分组对话框 */}
-        <Dialog open={openAddGroup} onClose={() => setOpenAddGroup(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>新增分组 <IconButton onClick={() => setOpenAddGroup(false)} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
-          <DialogContent>
-            <TextField autoFocus fullWidth label="分组名称" value={newGroup.name || ''} onChange={e => setNewGroup({ ...newGroup, name: e.target.value })} sx={{ mt: 2 }} />
-            <FormControlLabel control={<Switch checked={newGroup.is_public === 1} onChange={e => setNewGroup({ ...newGroup, is_public: e.target.checked ? 1 : 0 })} />} label="公开分组" />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenAddGroup(false)}>取消</Button>
-            <Button variant="contained" onClick={handleCreateGroup}>创建</Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* 新增站点对话框（保持你原来的完整逻辑） */}
-        <Dialog open={openAddSite} onClose={() => setOpenAddSite(false)} maxWidth="md" fullWidth>
-          <DialogTitle>新增站点 <IconButton onClick={() => setOpenAddSite(false)} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} sx={{ mt: 2 }}>
-              <TextField label="站点名称" value={newSite.name || ''} onChange={e => setNewSite({ ...newSite, name: e.target.value })} fullWidth />
-              <TextField label="站点URL" value={newSite.url || ''} onChange={e => setNewSite({ ...newSite, url: e.target.value })} fullWidth />
-              <TextField
-                label="图标URL（可留空自动获取）"
-                value={newSite.icon || ''}
-                onChange={e => setNewSite({ ...newSite, icon: e.target.value })}
-                fullWidth
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => {
-                        if (newSite.url) {
-                          const domain = extractDomain(newSite.url);
-                          if (domain) {
-                            const iconUrl = (configs['site.iconApi'] || 'https://www.faviconextractor.com/favicon/{domain}?larger=true').replace('{domain}', domain);
-                            setNewSite({ ...newSite, icon: iconUrl });
-                          }
-                        }
-                      }}>
-                        <AutoFixHighIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <TextField label="描述" value={newSite.description || ''} onChange={e => setNewSite({ ...newSite, description: e.target.value })} fullWidth />
-              <FormControlLabel control={<Switch checked={newSite.is_public === 1} onChange={e => setNewSite({ ...newSite, is_public: e.target.checked ? 1 : 0 })} />} label="公开站点" />
-            </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenAddSite(false)}>取消</Button>
-            <Button variant="contained" onClick={handleCreateSite}>创建</Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* 网站设置对话框（保持完整） */}
-        <Dialog open={openConfig} onClose={() => setOpenConfig(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>网站设置 <IconButton onClick={() => setOpenConfig(false)} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} sx={{ mt: 2 }}>
-              <TextField label="网站标题" name="site.title" value={tempConfigs['site.title']} onChange={e => setTempConfigs({ ...tempConfigs, [e.target.name]: e.target.value })} />
-              <TextField label="网站名称" name="site.name" value={tempConfigs['site.name']} onChange={e => setTempConfigs({ ...tempConfigs, [e.target.name]: e.target.value })} />
-              <TextField label="背景图片URL" name="site.backgroundImage" value={tempConfigs['site.backgroundImage']} onChange={e => setTempConfigs({ ...tempConfigs, [e.target.name]: e.target.value })} />
-              <Box>
-                <Typography>背景透明度: {Number(tempConfigs['site.backgroundOpacity']).toFixed(2)}</Typography>
-                <Slider
-                  value={Number(tempConfigs['site.backgroundOpacity'])}
-                  onChange={(_, v) => setTempConfigs({ ...tempConfigs, 'site.backgroundOpacity': String(v) })}
-                  step={0.01}
-                  min={0}
-                  max={1}
-                />
-              </Box>
-              <TextField label="自定义CSS" name="site.customCss" value={tempConfigs['site.customCss']} onChange={e => setTempConfigs({ ...tempConfigs, [e.target.name]: e.target.value })} multiline rows={6} />
-            </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenConfig(false)}>取消</Button>
-            <Button variant="contained" onClick={handleSaveConfig}>保存</Button>
-          </DialogActions>
-        </Dialog>
-
         {/* GitHub 角标 */}
-        <Box sx={{ position: 'fixed', bottom: 16, right: 16, zIndex: 10 }}>
-          <Paper component="a" href="https://github.com/adamj001/cloudflare-navi" target="_blank" elevation={3} sx={{ p: 1.5, borderRadius: 10, bgcolor: 'background.paper', '&:hover': { bgcolor: 'action.hover' } }}>
-            <GitHubIcon />
+        <Box sx={{ position: 'fixed', bottom: 20, right: 20, zIndex: 10 }}>
+          <Paper
+            component="a"
+            href="https://github.com/adamj001/cloudflare-navi"  {/* ← 改成你的仓库！ */}
+            target="_blank"
+            elevation={6}
+            sx={{
+              p: 2,
+              borderRadius: '50%',
+              bgcolor: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              '&:hover': { transform: 'scale(1.1)' },
+              transition: 'all 0.3s'
+            }}
+          >
+            <GitHubIcon sx={{ fontSize: 36 }} />
           </Paper>
         </Box>
+
+        {/* 登录弹窗 */}
+        <Dialog open={loginDialog} onClose={() => setLoginDialog(false)}>
+          <DialogTitle>{isLoggedIn ? '管理' : '管理员登录'}</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="密码"
+              type="password"
+              fullWidth
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setLoginDialog(false)}>取消</Button>
+            {isLoggedIn ? (
+              <Button onClick={() => { setIsLoggedIn(false); setSnackbar({ open: true, message: '已退出登录' }); }}>
+                退出登录
+              </Button>
+            ) : (
+              <Button onClick={handleLogin} variant="contained">登录</Button>
+            )}
+          </DialogActions>
+        </Dialog>
+
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          message={snackbar.message}
+        />
       </Box>
     </ThemeProvider>
   );
