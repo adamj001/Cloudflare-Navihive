@@ -471,7 +471,7 @@ export default function App() {
   <Box sx={{ position: 'fixed', right: 24, bottom: 24, zIndex: 10 }}>
     <IconButton
       component="a"
-      href="https://github.com/你的用户名/你的仓库名"   {/* ← 改这里！ */}
+      href="https://github.com/adamj001/cloudflare-navi"   {/* ← 改这里！ */}
       target="_blank"
       rel="noopener"
       size="large"
