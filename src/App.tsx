@@ -742,7 +742,7 @@ function App() {
           <Box sx={{ position: 'fixed', right: 24, bottom: 24, zIndex: 10 }}>
             <Paper
               component="a"
-              href="https://github.com/你的用户名/你的仓库名"
+              href="https://github.com/adamj001/cloudflare-navi"
               target="_blank"
               rel="noopener"
               elevation={2}
