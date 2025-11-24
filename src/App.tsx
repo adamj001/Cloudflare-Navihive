@@ -333,43 +333,43 @@ export default function App() {
     </Stack>
   </Box>
 
-  {/* 第二行：主菜单 Tabs 居中 + 黑体粗体 */}
-  <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
-    <AppBar position="static" color="transparent" elevation={0} sx={{ 
-      width: 'fit-content', 
-      backdropFilter: 'blur(16px)', 
-      background: 'rgba(30,30,30,0.6)',
-      borderRadius: 4,
-      px: 2,
-      py: 1
-    }}>
-      <Tabs
-        value={selectedTab || false}
-        onChange={(_, v) => setSelectedTab(v)}
-        variant="scrollable"
-        scrollButtons="auto"
-        allowScrollButtonsMobile
-        sx={{
-          '& .MuiTab-root': {
-            fontWeight: 800,           // 黑体粗体
-            fontFamily: '"Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif',
-            fontSize: '1.1rem',
-            minWidth: 80,
-            color: '#ffffff !important',
-          },
-          '& .MuiTabs-indicator': {
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: '#00ff9d',
-          },
-        }}
-      >
-        {groups.map(g => (
-          <Tab key={g.id} label={g.name} value={g.id} />
-        ))}
-      </Tabs>
-    </AppBar>
-  </Box>
+ {/* 第二行：主菜单 Tabs 居中 + 黑体粗体（安全写法） */}
+<Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+  <AppBar position="static" color="transparent" elevation={0} sx={{ 
+    width: 'fit-content', 
+    backdropFilter: 'blur(16px)', 
+    background: 'rgba(30,30,30,0.6)',
+    borderRadius: 4,
+    px: 2,
+    py: 1
+  }}>
+    <Tabs
+      value={selectedTab || false}
+      onChange={(_: any, v: number) => setSelectedTab(v)}
+      variant="scrollable"
+      scrollButtons="auto"
+      allowScrollButtonsMobile
+      sx={{
+        '& .MuiTab-root': {
+          fontWeight: 800,
+          fontFamily: '"Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif',
+          fontSize: '1.1rem',
+          minWidth: 80,
+          color: '#ffffff !important',
+        },
+        '& .MuiTabs-indicator': {
+          height: 4,
+          borderRadius: 2,
+          backgroundColor: '#00ff9d',
+        },
+      }}
+    >
+      {groups.map((g) => (
+        <Tab key={g.id} label={g.name} value={g.id} />
+      ))}
+    </Tabs>
+  </AppBar>
+</Box>
 
   {/* 搜索框（保持原逻辑） */}
   {configs['site.searchBoxEnabled'] === 'true' && (viewMode === 'edit' || configs['site.searchBoxGuestEnabled'] === 'true') && (
@@ -378,70 +378,69 @@ export default function App() {
     </Box>
   )}
 
-  {/* 主内容：磨砂玻璃卡片网格 */}
-  {loading ? (
-    <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 400 }}>
-      <CircularProgress />
-    </Box>
-  ) : (
+ {/* 主内容卡片网格 - 终极安全写法 */}
+{(() => {
+  const currentGroup = groups.find(g => g.id === selectedTab);
+  if (!currentGroup || !currentGroup.sites || currentGroup.sites.length === 0) {
+    return <Box sx={{ textAlign: 'center', py: 8, color: '#888' }}>暂无站点</Box>;
+  }
+  return (
     <Box sx={{ 
       display: 'grid', 
       gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', 
       gap: 3.5,
-      pb: 10  // 给底部留出空间
+      pb: 10
     }}>
-      {groups.find(g
-      => g.id ===
-      selectedTab)?.
-      sites?.map(sit
-      e => (
-          <Paper
-            key={site.id}
-            elevation={0}
-            component="a"
-            href={site.url}
-            target="_blank"
-            rel="noopener"
-            sx={{
-              p: 2.5,
-              borderRadius: 4,
-              bgcolor: 'rgba(255,255,255,0.06)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-              transition: 'all 0.3s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              textDecoration: 'none',
-              color: 'inherit',
-              '&:hover': {
-                transform: 'translateY(-8px) scale(1.03)',
-                bgcolor: 'rgba(255,255,255,0.1)',
-                boxShadow: '0 16px 40px rgba(0,0,0,0.4)',
-              },
-            }}
-          >
-            <Box sx={{ width: 56, height: 56, mb: 1.5, borderRadius: 3, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.1)', p: 1 }}>
-              <img 
-                src={site.icon || `https://www.faviconextractor.com/favicon/${extractDomain(site.url)}?larger=true`} 
-                alt={site.name}
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                onError={e => (e.currentTarget.src = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=100 height=100 fill=%22%23666%22/><text y=55 font-size=50 fill=%22%23fff%22 text-anchor=%22middle%22 x=50>${site.name[0]}</text></svg>')}
-              />
-            </Box>
-            <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>
-              {site.name}
+      {currentGroup.sites.map((site) => (
+        <Paper
+          key={site.id}
+          component="a"
+          href={site.url}
+          target="_blank"
+          rel="noopener"
+          sx={{
+            p: 2.5,
+            borderRadius: 4,
+            bgcolor: 'rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textDecoration: 'none',
+            color: 'inherit',
+            '&:hover': {
+              transform: 'translateY(-8px) scale(1.03)',
+              bgcolor: 'rgba(255,255,255,0.1)',
+              boxShadow: '0 16px 40px rgba(0,0,0,0.4)',
+            },
+          }}
+        >
+          <Box sx={{ width: 56, height: 56, mb: 1.5, borderRadius: 3, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.1)', p: 1 }}>
+            <img 
+              src={site.icon || `https://api.iowen.cn/favicon/${new URL(site.url).hostname}`}
+              alt={site.name}
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              onError={(e) => {
+                e.currentTarget.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23666"/><text y="55" font-size="50" fill="%23fff" text-anchor="middle" x="50">${site.name[0]}</text></svg>`;
+              }}
+            />
+          </Box>
+          <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>
+            {site.name}
+          </Typography>
+          {site.description && site.description !== '暂无描述' && (
+            <Typography variant="caption" sx={{ opacity: 0.7, fontSize: '0.75rem' }}>
+              {site.description}
             </Typography>
-            {site.description && site.description !== '暂无描述' && (
-              <Typography variant="caption" sx={{ opacity: 0.7, fontSize: '0.75rem' }}>
-                {site.description}
-              </Typography>
-            )}
-          </Paper>
-        )) || null}
+          )}
+        </Paper>
+      ))}
     </Box>
-  )}
+  );
+})()}
 
   {/* 1. 左下角：管理员登录按钮 */}
   {!isAuthenticated && (
