@@ -84,6 +84,47 @@ const DEFAULT_CONFIGS = {
 function App() {
   // 新增这两行！必须放在最前面！
      // —— 终极版：一次解决所有 TS2448 / TS2451 / TS2454 —— //
+
+    // —— 主题相关状态（你刚才删掉的全部在这！）—— //
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  const theme = useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode: darkMode ? 'dark' : 'light',
+          primary: { main: '#00ff9d' },
+          background: { default: darkMode ? '#121212' : '#f5f5f5' },
+        },
+        typography: { fontFamily: '"Microsoft YaHei", "Roboto", sans-serif' },
+      }),
+    [darkMode]
+  );
+
+  const toggleTheme = () => {
+    setDarkMode(!darkMode);
+    localStorage.setItem('theme', !darkMode ? 'dark' : 'light');
+  };
+
+  // —— 下面是你之前已经改好的 selectedTab 和 groups —— //
+  const [selectedTab, setSelectedTab] = useState<number | null>(null);
+  const [groups, setGroups] = useState<GroupWithSites[]>([]);
+
+  const currentGroup = useMemo(
+    () => groups.find(g => g.id === selectedTab) || null,
+    [groups, selectedTab]
+  );
+
+  useEffect(() => {
+    if (groups.length > 0 && selectedTab === null) {
+      const home = groups.find(g => g.name.toLowerCase() === 'home') || groups[0];
+      setSelectedTab(home.id);
+    }
+  }, [groups]);
   const [selectedTab, setSelectedTab] = useState<number | null>(null);
   const [groups, setGroups] = useState<GroupWithSites[]>([]);
 
