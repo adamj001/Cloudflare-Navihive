@@ -118,8 +118,8 @@ function App() {
   };
 
   const [groups, setGroups] = useState<GroupWithSites[]>([]);
-   const currentGroup = groups.find(g => g.id === selectedTab);
-  const [loading, setLoading] = useState(true);
+  const currentGroup = groups.find(g => g.id === selectedTab);
+     const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>(SortMode.None);
   const [currentSortingGroupId, setCurrentSortingGroupId] = useState<number | null>(null);
