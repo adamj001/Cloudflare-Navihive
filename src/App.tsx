@@ -10,6 +10,14 @@ import SearchBox from './components/SearchBox';
 import { sanitizeCSS, isSecureUrl, extractDomain } from './utils/url';
 import { SearchResultItem } from './utils/search';
 import './App.css';
+import AppBar from '@mui/material/AppBar';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import LoginIcon from '@mui/icons-material/Login';
+import MenuIcon from '@mui/icons-material/Menu';
+import { useState } from 'react'; // 这行你应该已经有，如果没有也加上
 import {
   DndContext,
   closestCenter,
@@ -767,7 +775,7 @@ function App() {
         <Box sx={{ position: 'fixed', right: 24, bottom: 24, zIndex: 10 }}>
           <Paper
             component="a"
-            href="https://github.com/你的用户名/你的仓库名"
+            href="https://github.com/adamj001/cloudflare-navi"
             target="_blank"
             rel="noopener"
             elevation={2}
