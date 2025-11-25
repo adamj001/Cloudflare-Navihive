@@ -9,16 +9,18 @@ import SearchBox from './components/SearchBox';
 import { sanitizeCSS, isSecureUrl, extractDomain } from './utils/url';
 import './App.css';
 
-// 下面这 7 行是之前一直漏的，必须单独 import（不能放进大括号里！）
+// 这三行必须单独 import！不能放进大括号！
 import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+
+// 这几个图标也必须单独 import
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import LoginIcon from '@mui/icons-material/Login';
 import MenuIcon from '@mui/icons-material/Menu';
 
-// 下面是大括号批量导入的 MUI 组件
+// 其余组件可以用大括号批量导入
 import {
   Container,
   Typography,
@@ -46,7 +48,6 @@ import {
   Slider,
 } from '@mui/material';
 
-// 其余图标
 import SortIcon from '@mui/icons-material/Sort';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import AddIcon from '@mui/icons-material/Add';
@@ -55,9 +56,6 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import LogoutIcon from '@mui/icons-material/Logout';
-import MenuIcon from '@mui/icons-material/Menu';
-import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
-
 const isDevEnvironment = import.meta.env.DEV;
 const useRealApi = import.meta.env.VITE_USE_REAL_API === 'true';
 
