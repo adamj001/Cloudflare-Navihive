@@ -82,42 +82,29 @@ const DEFAULT_CONFIGS = {
 };
 
 function App() {
-  // 新增这两行！必须放在最前面！
-     // —— 终极版：一次解决所有 TS2448 / TS2451 / TS2454 —— //
 
-    // —— 主题相关状态（你刚才删掉的全部在这！）—— //
+    // —— 唯一正确的状态声明（只出现一次！）—— //
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: darkMode ? 'dark' : 'light',
-          primary: { main: '#00ff9d' },
-          background: { default: darkMode ? '#121212' : '#f5f5f5' },
-        },
-        typography: { fontFamily: '"Microsoft YaHei", "Roboto", sans-serif' },
-      }),
-    [darkMode]
-  );
+  const theme = useMemo(() => createTheme({
+    palette: { mode: darkMode ? 'dark' : 'light', primary: { main: '#00ff9d' } },
+    typography: { fontFamily: '"Microsoft YaHei", sans-serif' },
+  }), [darkMode]);
 
   const toggleTheme = () => {
-    setDarkMode(!darkMode);
-    localStorage.setItem('theme', !darkMode ? 'dark' : 'light');
+    setDarkMode(prev => {
+      localStorage.setItem('theme', !prev ? 'dark' : 'light');
+      return !prev;
+    });
   };
 
-  // —— 下面是你之前已经改好的 selectedTab 和 groups —— //
   const [selectedTab, setSelectedTab] = useState<number | null>(null);
   const [groups, setGroups] = useState<GroupWithSites[]>([]);
-
-  const currentGroup = useMemo(
-    () => groups.find(g => g.id === selectedTab) || null,
-    [groups, selectedTab]
-  );
+  const currentGroup = useMemo(() => groups.find(g => g.id === selectedTab) || null, [groups, selectedTab]);
 
   useEffect(() => {
     if (groups.length > 0 && selectedTab === null) {
@@ -125,22 +112,8 @@ function App() {
       setSelectedTab(home.id);
     }
   }, [groups]);
-  const [selectedTab, setSelectedTab] = useState<number | null>(null);
-  const [groups, setGroups] = useState<GroupWithSites[]>([]);
-
-  // 用 useMemo 彻底干掉 TS2448/TS2454
-  const currentGroup = useMemo(() => 
-    groups.find(g => g.id === selectedTab) || null,
-    [groups, selectedTab]
-  );
-
-  // 自动选中第一个分组作为默认首页
-  useEffect(() => {
-    if (groups.length > 0 && selectedTab === null) {
-      const home = groups.find(g => g.name.toLowerCase() === 'home') || groups[0];
-      setSelectedTab(home.id);
-    }
   }, [groups]);
+ 
      const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>(SortMode.None);
