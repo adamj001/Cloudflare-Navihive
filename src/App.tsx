@@ -83,11 +83,11 @@ const api =
     ? new MockNavigationClient()
     : new NavigationClient(isDevEnvironment ? 'http://localhost:8788/api' : '/api');
 
-// 排序模式枚举
+// 排序模式枚举 (修正为字符串枚举，修复 TS2322 错误)
 enum SortMode {
-  None, // 不排序
-  GroupSort, // 分组排序
-  SiteSort, // 站点排序
+  None = 'None',
+  GroupSort = 'GroupSort',
+  SiteSort = 'SiteSort',
 }
 
 // 默认配置
@@ -104,11 +104,11 @@ const DEFAULT_CONFIGS = {
 
 // 新增视图模式枚举
 enum MainView {
-  Home,
-  Management, // 包含排序和配置等功能
+  Home = 'Home',
+  Management = 'Management', // 包含排序和配置等功能
 }
 
-// 定义立体感卡片样式
+// 定义立体感卡片样式 (用于 GroupCard 和 SortableGroupItem)
 const CardStyle = {
   // 黑色/深色背景
   bgcolor: 'grey.900', 
@@ -835,7 +835,8 @@ function App() {
             <Box key={`group-${group.id}`} id={`group-${group.id}`}>
               <GroupCard
                 group={group}
-                sortMode={SortMode.None}
+                // 修正：使用字符串枚举值
+                sortMode={SortMode.None} 
                 currentSortingGroupId={currentSortingGroupId}
                 viewMode={viewMode}
                 onUpdate={handleSiteUpdate}
@@ -846,7 +847,7 @@ function App() {
                 onUpdateGroup={handleGroupUpdate}
                 onDeleteGroup={handleGroupDelete}
                 configs={configs}
-                cardSx={CardStyle} // 传入自定义卡片样式
+                cardSx={CardStyle} // 传入自定义卡片样式 (需要 GroupCardProps 中定义)
               />
             </Box>
           ))}
@@ -940,7 +941,7 @@ function App() {
                         key={group.id} 
                         id={group.id.toString()} 
                         group={group} 
-                        cardSx={CardStyle} // 传入自定义卡片样式
+                        cardSx={CardStyle} // 传入自定义卡片样式 (需要 SortableGroupItemProps 中定义)
                       />
                     ))}
                   </Stack>
@@ -953,7 +954,8 @@ function App() {
                   <Box key={`group-${group.id}`} id={`group-${group.id}`}>
                     <GroupCard
                       group={group}
-                      sortMode='SiteSort' // 强制为站点排序模式
+                      // 修正：直接传递 SiteSort 字符串值
+                      sortMode={SortMode.SiteSort} 
                       currentSortingGroupId={currentSortingGroupId}
                       viewMode={viewMode}
                       onUpdate={handleSiteUpdate}
@@ -981,6 +983,7 @@ function App() {
             <Box key={`group-${group.id}`} id={`group-${group.id}`}>
               <GroupCard
                 group={group}
+                // 修正：使用字符串枚举值
                 sortMode={SortMode.None}
                 currentSortingGroupId={currentSortingGroupId}
                 viewMode={viewMode}
@@ -1062,7 +1065,6 @@ function App() {
       <CssBaseline />
 
       {/* 提示 Snackbar 保持不变 */}
-      {/* ... (Snackbar components) ... */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={6000}
