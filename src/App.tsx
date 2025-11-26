@@ -1,4 +1,5 @@
 // src/App.tsx —— 2025 年终极版顶部 Tabs 导航站（正式版）
+
 import { useState, useEffect, useMemo } from 'react';
 import { NavigationClient } from './API/client';
 import { MockNavigationClient } from './API/mock';
