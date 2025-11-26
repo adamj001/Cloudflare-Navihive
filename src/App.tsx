@@ -55,7 +55,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import SettingsIcon from '@mui/icons-material/Settings';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import LogoutIcon from '@mui/icons-material/Logout';
+import LogoutIcon from '@mui.icons-material/Logout';
 import MenuIcon from '@mui/icons-material/Menu';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 
@@ -174,7 +174,14 @@ export default function App() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      setGroups(await api.getGroupsWithSites());
+      const fetchedGroups = await api.getGroupsWithSites();
+      setGroups(fetchedGroups);
+      // 确保在数据更新后，如果当前选中项被删除，则切换到第一个分组
+      if (selectedTab !== null && !fetchedGroups.some(g => g.id === selectedTab)) {
+         setSelectedTab(fetchedGroups.length > 0 ? fetchedGroups[0].id : null);
+      } else if (selectedTab === null && fetchedGroups.length > 0) {
+         setSelectedTab(fetchedGroups[0].id);
+      }
     } finally {
       setLoading(false);
     }
@@ -304,6 +311,7 @@ export default function App() {
                 content: '""',
                 position: 'absolute',
                 inset: 0,
+                // 根据主题设置背景蒙版颜色和透明度
                 bgcolor: darkMode ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.85)',
                 opacity: 1 - Number(configs['site.backgroundOpacity'] || 0.15),
               },
@@ -311,62 +319,91 @@ export default function App() {
           />
         )}
 
-        <Container maxWidth="xl" sx={{ py: 3, position: 'relative', zIndex: 2 }}>
-          {/* 顶部导航栏 */}
-          <AppBar position="sticky" color="transparent" elevation={0} sx={{ mb: 4, backdropFilter: 'blur(12px)', bgcolor: 'background.paper' + 'dd' }}>
-            <Toolbar sx={{ justifyContent: 'space-between' }}>
-              <Typography variant="h4" fontWeight="bold">{configs['site.name']}</Typography>
+        {/* 顶部导航栏 (AppBar) */}
+        <AppBar 
+          position="sticky" 
+          elevation={0} 
+          sx={{ 
+            // 应用半透明和毛玻璃效果
+            backdropFilter: 'blur(12px)', 
+            bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(18, 18, 18, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+            // 确保在内容之上
+            zIndex: 100, 
+            py: 0
+          }}
+        >
+          {/* 第一行：标题和管理按钮 */}
+          <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, sm: 3, md: 4 } }}>
+            <Typography variant="h4" fontWeight="bold">{configs['site.name']}</Typography>
 
-              <Tabs
-                value={selectedTab || false}
-                onChange={(_, v) => setSelectedTab(v)}
-                variant="scrollable"
-                scrollButtons="auto"
-                allowScrollButtonsMobile
-                sx={{ '.MuiTabs-indicator': { height: 3, borderRadius: 1 } }}
-              >
-                {groups.map(g => (
-                  <Tab key={g.id} label={g.name} value={g.id} />
-                ))}
-              </Tabs>
-
-              <Stack direction="row" spacing={1} alignItems="center">
-                {sortMode !== SortMode.None ? (
-                  <>
-                    <Button variant="contained" size="small" startIcon={<SaveIcon />} onClick={handleSaveGroupOrder}>
-                      保存
-                    </Button>
-                    <Button variant="outlined" size="small" startIcon={<CancelIcon />} onClick={() => setSortMode(SortMode.None)}>
-                      取消
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    {viewMode === 'edit' && (
-                      <>
-                        <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setOpenAddGroup(true)}>
-                          新分组
-                        </Button>
-                        <IconButton onClick={e => setMenuAnchorEl(e.currentTarget)}>
-                          <MenuIcon />
-                        </IconButton>
-                      </>
-                    )}
-                    {viewMode === 'readonly' && (
-                      <Button variant="contained" size="small" onClick={() => setIsAuthRequired(true)}>
-                        登录管理
+            <Stack direction="row" spacing={1} alignItems="center">
+              {sortMode !== SortMode.None ? (
+                <>
+                  <Button variant="contained" size="small" startIcon={<SaveIcon />} onClick={handleSaveGroupOrder}>
+                    保存
+                  </Button>
+                  <Button variant="outlined" size="small" startIcon={<CancelIcon />} onClick={() => setSortMode(SortMode.None)}>
+                    取消
+                  </Button>
+                </>
+              ) : (
+                <>
+                  {viewMode === 'edit' && (
+                    <>
+                      <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setOpenAddGroup(true)}>
+                        新分组
                       </Button>
-                    )}
-                  </>
-                )}
-                <ThemeToggle darkMode={darkMode} onToggle={toggleTheme} />
-              </Stack>
-            </Toolbar>
-          </AppBar>
+                      <IconButton onClick={e => setMenuAnchorEl(e.currentTarget)}>
+                        <MenuIcon />
+                      </IconButton>
+                    </>
+                  )}
+                  {viewMode === 'readonly' && (
+                    <Button variant="contained" size="small" onClick={() => setIsAuthRequired(true)}>
+                      登录管理
+                    </Button>
+                  )}
+                </>
+              )}
+              <ThemeToggle darkMode={darkMode} onToggle={toggleTheme} />
+            </Stack>
+          </Toolbar>
+          
+          {/* 第二行：主菜单 Tabs */}
+          {groups.length > 0 && sortMode === SortMode.None && (
+            <Container maxWidth="xl" sx={{ px: { xs: 0, sm: 0, md: 0 } }}>
+                <Tabs
+                  value={selectedTab || false}
+                  onChange={(_, v) => setSelectedTab(v as number)}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  allowScrollButtonsMobile
+                  // 这里的 sx 调整了 Tab 栏的边距和指示器样式
+                  sx={{ 
+                    '.MuiTabs-indicator': { height: 3, borderRadius: 1 },
+                    // 使 Tabs 充满容器宽度，同时保留左右一定的 padding
+                    px: { xs: 1, sm: 2, md: 3 } 
+                  }}
+                >
+                  {groups.map(g => (
+                    <Tab 
+                      key={g.id} 
+                      label={g.name} 
+                      value={g.id} 
+                      // 确保 Tab 本身没有背景色，继承 AppBar 的半透明背景
+                      sx={{ bgcolor: 'transparent' }}
+                    />
+                  ))}
+                </Tabs>
+            </Container>
+          )}
 
+        </AppBar>
+
+        <Container maxWidth="xl" sx={{ py: 3, pt: { xs: 3, sm: 3, md: 3 }, position: 'relative', zIndex: 2 }}>
           {/* 搜索框 */}
           {configs['site.searchBoxEnabled'] === 'true' && (viewMode === 'edit' || configs['site.searchBoxGuestEnabled'] === 'true') && (
-            <Box sx={{ mb: 4, maxWidth: 600, mx: 'auto' }}>
+            <Box sx={{ mb: 4, maxWidth: 600, mx: 'auto', mt: 2 }}>
               <SearchBox groups={groups} sites={groups.flatMap(g => g.sites || [])} />
             </Box>
           )}
@@ -378,6 +415,7 @@ export default function App() {
             </Box>
           ) : (
             groups
+              // 只筛选当前选中的 Tab 对应的分组
               .filter(g => g.id === selectedTab)
               .map(group => (
                 <Box key={group.id} id={`group-${group.id}`}>
