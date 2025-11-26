@@ -52,7 +52,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import SettingsIcon from '@mui/icons-material/Settings';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-// import LogoutIcon from '@mui/icons-material/Logout'; // 💡 已删除导入
+// import LogoutIcon from '@mui/icons-material/Logout'; // 💡 保持删除，避免引入
 import MenuIcon from '@mui/icons-material/Menu';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import LoginIcon from '@mui/icons-material/Login';
@@ -162,6 +162,20 @@ function App() {
   const handleMenuClose = () => {
     setMenuAnchorEl(null);
   };
+  
+  // 💡 恢复：处理分组排序保存
+  const handleSaveGroupOrder = async () => {
+    try {
+      const orders = groups.map((g, i) => ({ id: g.id!, order_num: i }));
+      await api.updateGroupOrder(orders);
+      await fetchData();
+      setSortMode(SortMode.None);
+      handleError('分组顺序已保存');
+    } catch {
+      handleError('保存失败');
+    }
+  };
+
 
   const checkAuthStatus = async () => {
     try {
@@ -267,6 +281,9 @@ function App() {
       // 确保选中第一个 Tab
       if (groupsWithSites.length > 0 && selectedTab === null) {
         setSelectedTab(groupsWithSites[0].id);
+      } else if (selectedTab !== null && !groupsWithSites.some(g => g.id === selectedTab)) {
+        // 如果当前选中项被删除，则切换到第一个分组
+        setSelectedTab(groupsWithSites.length > 0 ? groupsWithSites[0].id : null);
       }
     } catch (error) {
       console.error('加载数据失败:', error);
@@ -276,6 +293,7 @@ function App() {
     }
   };
 
+  // 💡 站点和分组的 CRUD 函数已恢复或在您的代码中保持不变
   const handleSiteUpdate = async (updatedSite: Site) => {
     try {
       if (updatedSite.id) {
@@ -588,7 +606,6 @@ function App() {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  // 调整背景蒙版透明度
                   backgroundColor: darkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.3)',
                   zIndex: 1,
                 },
@@ -598,9 +615,8 @@ function App() {
         )}
 
         {/* 顶部固定栏：标题和管理按钮 */}
-        <AppBar position="sticky" color="transparent" elevation={0} sx={{ 
-            backdropFilter: 'blur(16px)', 
-            // 基础 AppBar 使用半透明背景
+        <AppBar position="sticky" color="transparent" elevation={0} sx={{
+            backdropFilter: 'blur(16px)',
             background: (t) => t.palette.mode === 'dark' ? 'rgba(18, 18, 18, 0.7)' : 'rgba(255, 255, 255, 0.7)',
             zIndex: 100,
             pt: 1,
@@ -610,8 +626,42 @@ function App() {
                 <Typography variant="h4" fontWeight="bold" sx={{ color: 'text.primary' }}>
                   {configs['site.name']}
                 </Typography>
-                <Stack direction="row" spacing={1}>
-                  {isAuthenticated && <IconButton onClick={handleOpenConfig} color="inherit"><SettingsIcon /></IconButton>}
+                
+                {/* 💡 恢复：管理按钮区域 */}
+                <Stack direction="row" spacing={1} alignItems="center">
+                  {isAuthenticated && sortMode === SortMode.None && (
+                    <>
+                      {/* 新增分组按钮 */}
+                      <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={handleOpenAddGroup}>
+                        新增分组
+                      </Button>
+                      
+                      {/* 主菜单按钮 */}
+                      <IconButton onClick={handleMenuOpen} color="inherit">
+                        <MenuIcon />
+                      </IconButton>
+                    </>
+                  )}
+                  {isAuthenticated && sortMode !== SortMode.None && (
+                    <>
+                      {/* 排序按钮 */}
+                      <Button variant="contained" size="small" startIcon={<SaveIcon />} onClick={handleSaveGroupOrder}>
+                          保存排序
+                      </Button>
+                      <Button variant="outlined" size="small" startIcon={<CancelIcon />} onClick={cancelSort}>
+                          取消
+                      </Button>
+                    </>
+                  )}
+                  
+                  {/* 非登录状态下的登录按钮 */}
+                  {!isAuthenticated && (
+                     <Button variant="contained" startIcon={<LoginIcon />} onClick={() => setIsAuthRequired(true)}>
+                        管理员登录
+                    </Button>
+                  )}
+                  
+                  {/* 主题切换 */}
                   <ThemeToggle darkMode={darkMode} onToggle={toggleTheme} />
                 </Stack>
               </Box>
@@ -622,7 +672,6 @@ function App() {
             <Paper 
               elevation={4} 
               sx={{ 
-                // 确保 Tab 容器有玻璃效果和圆角
                 backdropFilter: 'blur(16px)', 
                 background: (t) => t.palette.mode === 'dark' ? 'rgba(30,30,30,0.8)' : 'rgba(255,255,255,0.8)', 
                 borderRadius: 4, 
@@ -636,13 +685,10 @@ function App() {
                 variant="scrollable" 
                 scrollButtons="auto" 
                 allowScrollButtonsMobile 
-                // 💡 关键修改：Tabs 居中
                 centered 
                 sx={{
-                  // 移除多余的边距，Tabs 组件已经放在居中的 Box 里
                   '& .MuiTab-root': { 
                     fontWeight: 800, 
-                    // 自动适应暗色/亮色模式的文本颜色
                     color: (t) => t.palette.mode === 'dark' ? '#ffffff' : t.palette.text.primary, 
                     fontSize: '1.0rem', 
                     minWidth: 80, 
@@ -650,7 +696,6 @@ function App() {
                   '& .MuiTabs-indicator': { 
                     height: 3, 
                     borderRadius: 1, 
-                    // 霓虹色指示器
                     backgroundColor: '#00ff9d' 
                   },
                 }}
@@ -692,7 +737,7 @@ function App() {
               gap: 3.5, 
               pb: 10 
             }}>
-              {/* 💡 渲染当前选中分组下的站点卡片 */}
+              {/* 渲染当前选中分组下的站点卡片，并应用了垂直居中布局和隐藏描述 */}
               {currentGroup?.sites?.map((site: Site) => (
                 <Paper
                   key={site.id}
@@ -703,18 +748,16 @@ function App() {
                   sx={{
                     p: 2.5,
                     borderRadius: 4,
-                    // 调整卡片背景使其更透明
                     bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
                     backdropFilter: 'blur(12px)',
                     border: '1px solid rgba(255,255,255,0.12)',
                     boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
                     transition: 'all 0.3s ease',
                     
-                    // 💡 关键修改：图标上置，名称居中
                     display: 'flex',
                     flexDirection: 'column', 
-                    alignItems: 'center', // 站点卡片内容居中
-                    textAlign: 'center', // 文本居中
+                    alignItems: 'center', 
+                    textAlign: 'center',
                     
                     textDecoration: 'none',
                     color: 'inherit',
@@ -742,39 +785,55 @@ function App() {
                     {site.name}
                   </Typography>
                   
-                  {/* 网站描述 - 💡 关键修改：隐藏 "暂无描述" 或空描述 */}
+                  {/* 网站描述 - 只有非空且不为 '暂无描述' 时才显示 */}
                   {site.description && site.description !== '暂无描述' && (
                     <Typography variant="caption" noWrap sx={{ opacity: 0.7, fontSize: '0.75rem', color: 'text.secondary', maxWidth: '100%' }}>
                       {site.description}
                     </Typography>
                   )}
+                  
+                  {/* TODO: 如果要实现卡片上的编辑/删除，逻辑需要在这里添加 */}
                 </Paper>
               ))}
             </Box>
           )}
 
-          {!isAuthenticated && (
-            <Box sx={{ position: 'fixed', left: 24, bottom: 24, zIndex: 10 }}>
-              <Button
-                variant="contained"
-                startIcon={<LoginIcon />}
-                onClick={() => setIsAuthRequired(true)}
-                sx={{
-                  bgcolor: 'rgba(0,255,150,0.15)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(0,255,150,0.3)',
-                  color: '#00ff9d',
-                  fontWeight: 'bold',
-                  px: 3,
-                  py: 1.5,
-                  borderRadius: 4,
-                  '&:hover': { bgcolor: 'rgba(0,255,150,0.25)', transform: 'translateY(-2px)' },
-                }}
-              >
-                管理员登录
-              </Button>
-            </Box>
-          )}
+          {/* 💡 恢复：管理菜单组件 */}
+          <Menu anchorEl={menuAnchorEl} open={openMenu} onClose={handleMenuClose}>
+            <MenuItem onClick={() => { setSortMode(SortMode.GroupSort); handleMenuClose(); }}>
+              <ListItemIcon><SortIcon /></ListItemIcon>
+              <ListItemText>编辑分组排序</ListItemText>
+            </MenuItem>
+            
+            <Divider />
+            
+            <MenuItem onClick={() => { handleOpenConfig(); handleMenuClose(); }}>
+              <ListItemIcon><SettingsIcon /></ListItemIcon>
+              <ListItemText>网站设置</ListItemText>
+            </MenuItem>
+            
+            <Divider />
+            
+            <MenuItem onClick={() => { handleExportData(); handleMenuClose(); }}>
+              <ListItemIcon><FileDownloadIcon /></ListItemIcon>
+              <ListItemText>导出数据</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={() => { handleOpenImport(); handleMenuClose(); }}>
+              <ListItemIcon><FileUploadIcon /></ListItemIcon>
+              <ListItemText>导入数据</ListItemText>
+            </MenuItem>
+            
+            <Divider />
+            
+            {/* 退出登录，不带图标但保留对齐空间 */}
+            <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
+              <ListItemIcon sx={{ color: 'error.main' }}></ListItemIcon>
+              <ListItemText>退出登录</ListItemText>
+            </MenuItem>
+          </Menu>
+
+          {/* 非登录状态下的登录按钮（已在 AppBar 中处理，此处删除，保持一致性） */}
+          {/* {!isAuthenticated && (...)} */}
 
           <Box sx={{ position: 'fixed', right: 24, bottom: 24, zIndex: 10 }}>
             <Paper
@@ -804,10 +863,53 @@ function App() {
           </Box>
         </Container>
 
+        {/* 💡 恢复：导入数据对话框 */}
+        <Dialog open={openImport} onClose={handleCloseImport} maxWidth="sm" fullWidth>
+          <DialogTitle>导入数据</DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ mb: 2 }}>请上传您之前导出的 JSON 备份文件。</DialogContentText>
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleFileSelect}
+              style={{ display: 'block', marginBottom: '16px' }}
+            />
+            {importError && <Alert severity="error">{importError}</Alert>}
+            {importFile && (
+              <Alert severity="info">已选择文件: {importFile.name}</Alert>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseImport}>取消</Button>
+            <Button 
+              variant="contained" 
+              onClick={handleImportData} 
+              disabled={!importFile || importLoading}
+              startIcon={importLoading ? <CircularProgress size={20} /> : null}
+            >
+              {importLoading ? '导入中...' : '开始导入'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+        
         <Dialog open={isAuthRequired && !isAuthenticated} onClose={() => setIsAuthRequired(false)}>
           <LoginForm onLogin={handleLogin} loading={loginLoading} error={loginError} />
         </Dialog>
 
+        {/* 新增分组对话框（保持不变） */}
+        <Dialog open={openAddGroup} onClose={handleCloseAddGroup} maxWidth="sm" fullWidth>
+          <DialogTitle>新增分组 <IconButton onClick={handleCloseAddGroup} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
+          <DialogContent>
+            <TextField autoFocus fullWidth label="分组名称" value={newGroup.name || ''} name="name" onChange={handleGroupInputChange} sx={{ mt: 2 }} />
+            <FormControlLabel control={<Switch checked={newGroup.is_public === 1} onChange={e => setNewGroup({ ...newGroup, is_public: e.target.checked ? 1 : 0 })} />} label="公开分组" />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseAddGroup}>取消</Button>
+            <Button variant="contained" onClick={handleCreateGroup}>创建</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* 网站设置对话框（保持不变） */}
         <Dialog open={openConfig} onClose={handleCloseConfig} maxWidth="sm" fullWidth>
           <DialogTitle>网站设置 <IconButton onClick={handleCloseConfig} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
           <DialogContent>
