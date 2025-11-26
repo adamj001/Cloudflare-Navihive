@@ -52,10 +52,13 @@ import CloseIcon from '@mui/icons-material/Close';
 import SettingsIcon from '@mui/icons-material/Settings';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-// import LogoutIcon from '@mui/icons-material/Logout'; // 💡 保持删除，避免引入
 import MenuIcon from '@mui/icons-material/Menu';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import LoginIcon from '@mui/icons-material/Login';
+// 💡 站点编辑/删除需要用到以下图标，虽然功能未完全实现，但 UI 上需要它们
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete'; 
+
 
 const isDevEnvironment = import.meta.env.DEV;
 const useRealApi = import.meta.env.VITE_USE_REAL_API === 'true';
@@ -127,7 +130,7 @@ function App() {
   const [tempConfigs, setTempConfigs] = useState<Record<string, string>>(DEFAULT_CONFIGS);
 
   const [openAddGroup, setOpenAddGroup] = useState(false);
-  const [openAddSite, setOpenAddSite] = useState(false);
+  const [openAddSite, setOpenAddSite] = useState(false); // 💡 新增：新增站点对话框状态
   const [newGroup, setNewGroup] = useState<Partial<Group>>({
     name: '',
     order_num: 0,
@@ -163,9 +166,9 @@ function App() {
     setMenuAnchorEl(null);
   };
   
-  // 💡 恢复：处理分组排序保存
   const handleSaveGroupOrder = async () => {
     try {
+      // 这里的逻辑需要确保 groups 数组的顺序被更新后再发送请求
       const orders = groups.map((g, i) => ({ id: g.id!, order_num: i }));
       await api.updateGroupOrder(orders);
       await fetchData();
@@ -293,7 +296,6 @@ function App() {
     }
   };
 
-  // 💡 站点和分组的 CRUD 函数已恢复或在您的代码中保持不变
   const handleSiteUpdate = async (updatedSite: Site) => {
     try {
       if (updatedSite.id) {
@@ -329,12 +331,15 @@ function App() {
   };
 
   const handleGroupDelete = async (groupId: number) => {
-    try {
-      await api.deleteGroup(groupId);
-      await fetchData();
-    } catch (error) {
-      console.error('删除分组失败:', error);
-      handleError('删除分组失败: ' + (error as Error).message);
+    if (window.confirm('警告：删除分组会同时删除该分组下的所有站点！确定删除吗？')) {
+        try {
+            await api.deleteGroup(groupId);
+            await fetchData();
+            handleError('分组已删除');
+        } catch (error) {
+            console.error('删除分组失败:', error);
+            handleError('删除分组失败: ' + (error as Error).message);
+        }
     }
   };
 
@@ -396,6 +401,7 @@ function App() {
     }
   };
 
+  // 💡 修改：站点新增流程，确保 group_id 传入
   const handleOpenAddSite = (groupId: number) => {
     const group = groups.find((g) => g.id === groupId);
     const maxOrderNum = group?.sites.length ? Math.max(...group.sites.map((s) => s.order_num)) + 1 : 0;
@@ -405,7 +411,7 @@ function App() {
       icon: '',
       description: '',
       notes: '',
-      group_id: groupId,
+      group_id: groupId, // 确保 group_id 被设置
       order_num: maxOrderNum,
       is_public: 1,
     });
@@ -627,10 +633,21 @@ function App() {
                   {configs['site.name']}
                 </Typography>
                 
-                {/* 💡 恢复：管理按钮区域 */}
+                {/* 管理按钮区域 */}
                 <Stack direction="row" spacing={1} alignItems="center">
                   {isAuthenticated && sortMode === SortMode.None && (
                     <>
+                      {/* 💡 新增：新增站点按钮 */}
+                      <Button 
+                        variant="contained" 
+                        size="small" 
+                        startIcon={<AddIcon />} 
+                        onClick={() => selectedTab && handleOpenAddSite(selectedTab as number)}
+                        disabled={!selectedTab}
+                      >
+                        新增站点
+                      </Button>
+                      
                       {/* 新增分组按钮 */}
                       <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={handleOpenAddGroup}>
                         新增分组
@@ -741,6 +758,7 @@ function App() {
               {currentGroup?.sites?.map((site: Site) => (
                 <Paper
                   key={site.id}
+                  // 💡 修改：这里 component="a" 保持跳转，但内部的删除按钮会阻止跳转
                   component="a"
                   href={site.url}
                   target="_blank"
@@ -758,6 +776,7 @@ function App() {
                     flexDirection: 'column', 
                     alignItems: 'center', 
                     textAlign: 'center',
+                    position: 'relative', // 💡 新增：使内部删除按钮能定位
                     
                     textDecoration: 'none',
                     color: 'inherit',
@@ -768,6 +787,35 @@ function App() {
                     },
                   }}
                 >
+                  {/* 💡 新增：删除站点按钮 - 只有登录后才显示 */}
+                  {isAuthenticated && (
+                      <IconButton
+                          size="small"
+                          onClick={(e) => {
+                              e.preventDefault(); // 阻止卡片链接跳转
+                              e.stopPropagation(); // 阻止事件冒泡
+                              if (window.confirm(`确定删除站点 "${site.name}" 吗?`)) {
+                                  handleSiteDelete(site.id!);
+                              }
+                          }}
+                          sx={{
+                              position: 'absolute',
+                              top: 8,
+                              right: 8,
+                              zIndex: 10,
+                              color: 'error.light',
+                              opacity: 0.7,
+                              bgcolor: 'rgba(0,0,0,0.4)',
+                              '&:hover': {
+                                  opacity: 1,
+                                  bgcolor: 'rgba(0,0,0,0.6)',
+                              }
+                          }}
+                      >
+                          <CloseIcon fontSize="small" />
+                      </IconButton>
+                  )}
+                  
                   {/* 网站图标 */}
                   <Box sx={{ width: 56, height: 56, mb: 1.5, borderRadius: 3, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.1)', p: 1 }}>
                     <img 
@@ -791,14 +839,12 @@ function App() {
                       {site.description}
                     </Typography>
                   )}
-                  
-                  {/* TODO: 如果要实现卡片上的编辑/删除，逻辑需要在这里添加 */}
                 </Paper>
               ))}
             </Box>
           )}
 
-          {/* 💡 恢复：管理菜单组件 */}
+          {/* 管理菜单组件 */}
           <Menu anchorEl={menuAnchorEl} open={openMenu} onClose={handleMenuClose}>
             <MenuItem onClick={() => { setSortMode(SortMode.GroupSort); handleMenuClose(); }}>
               <ListItemIcon><SortIcon /></ListItemIcon>
@@ -814,6 +860,22 @@ function App() {
             
             <Divider />
             
+            {/* 💡 新增：删除当前分组 */}
+            {currentGroup && (
+                <MenuItem 
+                    onClick={() => { handleGroupDelete(currentGroup.id!); handleMenuClose(); }} 
+                    sx={{ color: 'error.main' }}
+                    disabled={groups.length === 1} // 至少保留一个分组
+                >
+                    <ListItemIcon sx={{ color: 'error.main' }}>
+                        <DeleteIcon />
+                    </ListItemIcon>
+                    <ListItemText>删除分组: {currentGroup.name}</ListItemText>
+                </MenuItem>
+            )}
+            
+            <Divider />
+            
             <MenuItem onClick={() => { handleExportData(); handleMenuClose(); }}>
               <ListItemIcon><FileDownloadIcon /></ListItemIcon>
               <ListItemText>导出数据</ListItemText>
@@ -825,15 +887,12 @@ function App() {
             
             <Divider />
             
-            {/* 退出登录，不带图标但保留对齐空间 */}
+            {/* 退出登录 */}
             <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
               <ListItemIcon sx={{ color: 'error.main' }}></ListItemIcon>
               <ListItemText>退出登录</ListItemText>
             </MenuItem>
           </Menu>
-
-          {/* 非登录状态下的登录按钮（已在 AppBar 中处理，此处删除，保持一致性） */}
-          {/* {!isAuthenticated && (...)} */}
 
           <Box sx={{ position: 'fixed', right: 24, bottom: 24, zIndex: 10 }}>
             <Paper
@@ -863,7 +922,7 @@ function App() {
           </Box>
         </Container>
 
-        {/* 💡 恢复：导入数据对话框 */}
+        {/* 导入数据对话框 */}
         <Dialog open={openImport} onClose={handleCloseImport} maxWidth="sm" fullWidth>
           <DialogTitle>导入数据</DialogTitle>
           <DialogContent>
@@ -896,7 +955,7 @@ function App() {
           <LoginForm onLogin={handleLogin} loading={loginLoading} error={loginError} />
         </Dialog>
 
-        {/* 新增分组对话框（保持不变） */}
+        {/* 新增分组对话框 */}
         <Dialog open={openAddGroup} onClose={handleCloseAddGroup} maxWidth="sm" fullWidth>
           <DialogTitle>新增分组 <IconButton onClick={handleCloseAddGroup} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
           <DialogContent>
@@ -909,7 +968,25 @@ function App() {
           </DialogActions>
         </Dialog>
 
-        {/* 网站设置对话框（保持不变） */}
+        {/* 💡 新增：新增站点对话框 */}
+        <Dialog open={openAddSite} onClose={handleCloseAddSite} maxWidth="sm" fullWidth>
+          <DialogTitle>新增站点 (分组: {currentGroup?.name}) <IconButton onClick={handleCloseAddSite} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+                <TextField autoFocus fullWidth label="站点名称" value={newSite.name || ''} name="name" onChange={handleSiteInputChange} />
+                <TextField fullWidth label="URL" value={newSite.url || ''} name="url" onChange={handleSiteInputChange} />
+                <TextField fullWidth label="图标URL (可选)" value={newSite.icon || ''} name="icon" onChange={handleSiteInputChange} />
+                <TextField fullWidth label="描述 (可选)" value={newSite.description || ''} name="description" onChange={handleSiteInputChange} />
+                <FormControlLabel control={<Switch checked={newSite.is_public === 1} onChange={e => setNewSite({ ...newSite, is_public: e.target.checked ? 1 : 0 })} />} label="公开站点" />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseAddSite}>取消</Button>
+            <Button variant="contained" onClick={handleCreateSite}>创建</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* 网站设置对话框 */}
         <Dialog open={openConfig} onClose={handleCloseConfig} maxWidth="sm" fullWidth>
           <DialogTitle>网站设置 <IconButton onClick={handleCloseConfig} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
           <DialogContent>
