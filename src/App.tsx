@@ -782,7 +782,7 @@ function App() {
           ) : (
             <Box sx={{ 
               display: 'grid', 
-              gridTemplateColumns: { xs: 'repeat(auto-fill, minmax(150px, 1fr))', md: 'repeat(6, 1fr)' },
+              gridTemplateColumns: { xs: 'repeat(auto-fill, minmax(140px, 1fr))', md: 'repeat(6, 1fr)' },
               // gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
               gap: 3.5, 
               pb: 10 
