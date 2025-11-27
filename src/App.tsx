@@ -43,8 +43,6 @@ import {
   Tab,
   Toolbar,
 } from '@mui/material';
-
-// 💡 修复 TS2307: 确保所有图标都正确地从根目录导入
 import SortIcon from '@mui/icons-material/Sort';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -57,6 +55,7 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import MenuIcon from '@mui/icons-material/Menu';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import LoginIcon from '@mui/icons-material/Login';
+// 💡 站点编辑/删除需要用到以下图标，虽然功能未完全实现，但 UI 上需要它们
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete'; 
 
@@ -81,7 +80,10 @@ const DEFAULT_CONFIGS = {
   'site.customCss': '',
   'site.backgroundImage': '',
   'site.backgroundOpacity': '0.15',
-  'site.iconApi': 'https://www.faviconextractor.com/favicon/{domain}?larger=true', 
+ // 原来可能是这个
+'site.iconApi': 'https://www.faviconextractor.com/favicon/{domain}?larger=true',
+// 改成这个（第 57 行左右）
+'site.iconApi': 'https://www.google.com/s2/favicons?domain={domain}&sz=128',
   'site.searchBoxEnabled': 'true',
   'site.searchBoxGuestEnabled': 'true',
 };
@@ -131,7 +133,7 @@ function App() {
   const [tempConfigs, setTempConfigs] = useState<Record<string, string>>(DEFAULT_CONFIGS);
 
   const [openAddGroup, setOpenAddGroup] = useState(false);
-  const [openAddSite, setOpenAddSite] = useState(false); 
+  const [openAddSite, setOpenAddSite] = useState(false); // 💡 新增：新增站点对话框状态
   const [newGroup, setNewGroup] = useState<Partial<Group>>({
     name: '',
     order_num: 0,
@@ -169,6 +171,7 @@ function App() {
   
   const handleSaveGroupOrder = async () => {
     try {
+      // 这里的逻辑需要确保 groups 数组的顺序被更新后再发送请求
       const orders = groups.map((g, i) => ({ id: g.id!, order_num: i }));
       await api.updateGroupOrder(orders);
       await fetchData();
@@ -194,8 +197,6 @@ function App() {
       await Promise.all([fetchData(), fetchConfigs()]);
     } catch (error) {
       console.error('认证检查失败:', error);
-      // 💡 修复 TS2769: 确保参数是 string 类型
-      handleError('认证检查失败: ' + (error instanceof Error ? error.message : '未知错误'));
       setViewMode('readonly');
       await Promise.all([fetchData(), fetchConfigs()]);
     } finally {
@@ -241,8 +242,6 @@ function App() {
       setTempConfigs(mergedConfigs);
     } catch (error) {
       console.error('加载配置失败:', error);
-      // 💡 修复 TS2769: 确保参数是 string 类型
-      handleError('加载配置失败: ' + (error instanceof Error ? error.message : '未知错误'));
     }
   };
 
@@ -294,7 +293,6 @@ function App() {
       }
     } catch (error) {
       console.error('加载数据失败:', error);
-      // 💡 修复 TS2769: 确保参数是 string 类型
       handleError('加载数据失败: ' + (error instanceof Error ? error.message : '未知错误'));
     } finally {
       setLoading(false);
@@ -309,8 +307,7 @@ function App() {
       }
     } catch (error) {
       console.error('更新站点失败:', error);
-      // 💡 修复 TS2769: 确保参数是 string 类型
-      handleError('更新站点失败: ' + (error instanceof Error ? error.message : '未知错误'));
+      handleError('更新站点失败: ' + (error as Error).message);
     }
   };
 
@@ -320,8 +317,7 @@ function App() {
       await fetchData();
     } catch (error) {
       console.error('删除站点失败:', error);
-      // 💡 修复 TS2769: 确保参数是 string 类型
-      handleError('删除站点失败: ' + (error instanceof Error ? error.message : '未知错误'));
+      handleError('删除站点失败: ' + (error as Error).message);
     }
   };
 
@@ -333,8 +329,7 @@ function App() {
       }
     } catch (error) {
       console.error('更新分组失败:', error);
-      // 💡 修复 TS2769: 确保参数是 string 类型
-      handleError('更新分组失败: ' + (error instanceof Error ? error.message : '未知错误'));
+      handleError('更新分组失败: ' + (error as Error).message);
     }
   };
 
@@ -346,8 +341,7 @@ function App() {
             handleError('分组已删除');
         } catch (error) {
             console.error('删除分组失败:', error);
-            // 💡 修复 TS2769: 确保参数是 string 类型
-            handleError('删除分组失败: ' + (error instanceof Error ? error.message : '未知错误'));
+            handleError('删除分组失败: ' + (error as Error).message);
         }
     }
   };
@@ -365,8 +359,7 @@ function App() {
       setCurrentSortingGroupId(null);
     } catch (error) {
       console.error('更新站点排序失败:', error);
-      // 💡 修复 TS2769: 确保参数是 string 类型
-      handleError('更新站点排序失败: ' + (error instanceof Error ? error.message : '未知错误'));
+      handleError('更新站点排序失败: ' + (error as Error).message);
     }
   };
 
@@ -407,11 +400,11 @@ function App() {
       handleCloseAddGroup();
     } catch (error) {
       console.error('创建分组失败:', error);
-      // 💡 修复 TS2769: 确保参数是 string 类型
-      handleError('创建分组失败: ' + (error instanceof Error ? error.message : '未知错误'));
+      handleError('创建分组失败: ' + (error as Error).message);
     }
   };
 
+  // 💡 修改：站点新增流程，确保 group_id 传入
   const handleOpenAddSite = (groupId: number) => {
     const group = groups.find((g) => g.id === groupId);
     const maxOrderNum = group?.sites.length ? Math.max(...group.sites.map((s) => s.order_num)) + 1 : 0;
@@ -421,7 +414,7 @@ function App() {
       icon: '',
       description: '',
       notes: '',
-      group_id: groupId, 
+      group_id: groupId, // 确保 group_id 被设置
       order_num: maxOrderNum,
       is_public: 1,
     });
@@ -432,30 +425,28 @@ function App() {
     setOpenAddSite(false);
   };
 
-  const handleSiteInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+ const handleSiteInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const { name, value } = e.target;
+  setNewSite(prev => {
+    let updated = { ...prev, [name]: value };
 
-    setNewSite(prev => {
-      const updated = {
-        ...prev,
-        [name]: value,
-      };
-
-      // 自动填充图标逻辑
-      if (name === 'url' && value.startsWith('http')) {
+    // 只要用户输入 URL，就自动生成 favicon
+    if (name === 'url' && value.trim()) {
+      try {
         const domain = extractDomain(value);
-        const iconApi = configs['site.iconApi'];
-        const autoIcon = iconApi.replace('{domain}', domain);
-
-        // 仅在图标字段为空或未被用户手动修改时自动填充
-        if (!prev.icon || prev.icon === '') {
-          updated.icon = autoIcon;
+        if (domain) {
+          // 优先用你配置的 iconApi，不行就用 Google（永远不会挂）
+          const template = configs['site.iconApi'] || 'https://www.google.com/s2/favicons?domain={domain}&sz=128';
+          updated.icon = template.replace('{domain}', domain);
         }
+      } catch (err) {
+        console.warn('提取域名失败', err);
       }
+    }
 
-      return updated;
-    });
-  };
+    return updated;
+  });
+};
 
   const handleCreateSite = async () => {
     try {
@@ -468,8 +459,7 @@ function App() {
       handleCloseAddSite();
     } catch (error) {
       console.error('创建站点失败:', error);
-      // 💡 修复 TS2769: 确保参数是 string 类型
-      handleError('创建站点失败: ' + (error instanceof Error ? error.message : '未知错误'));
+      handleError('创建站点失败: ' + (error as Error).message);
     }
   };
 
@@ -500,8 +490,7 @@ function App() {
       handleCloseConfig();
     } catch (error) {
       console.error('保存配置失败:', error);
-      // 💡 修复 TS2769: 确保参数是 string 类型
-      handleError('保存配置失败: ' + (error instanceof Error ? error.message : '未知错误'));
+      handleError('保存配置失败: ' + (error as Error).message);
     }
   };
 
@@ -584,7 +573,6 @@ function App() {
           handleError('导入成功！');
         } catch (error) {
           console.error('解析导入数据失败:', error);
-          // 💡 修复 TS2769: 确保参数是 string 类型
           handleError('解析导入数据失败: ' + (error instanceof Error ? error.message : '未知错误'));
         } finally {
           setImportLoading(false);
@@ -596,8 +584,7 @@ function App() {
       };
     } catch (error) {
       console.error('导入数据失败:', error);
-      // 💡 修复 TS2769: 确保参数是 string 类型
-      handleError('导入数据失败: ' + (error instanceof Error ? error.message : '未知错误'));
+      handleError('导入数据失败: ' + (error as Error).message);
     }
   };
 
@@ -669,7 +656,7 @@ function App() {
                 <Stack direction="row" spacing={1} alignItems="center">
                   {isAuthenticated && sortMode === SortMode.None && (
                     <>
-                      {/* 新增站点按钮 */}
+                      {/* 💡 新增：新增站点按钮 */}
                       <Button 
                         variant="contained" 
                         size="small" 
@@ -728,29 +715,45 @@ function App() {
                 py: 0.5,
               }}
             >
-              <Tabs 
-                value={selectedTab || false} 
-                onChange={(_, v) => setSelectedTab(v as number)} 
-                variant="scrollable" 
-                scrollButtons="auto" 
-                allowScrollButtonsMobile 
-                centered 
-                sx={{
-                  '& .MuiTab-root': { 
-                    fontWeight: 800, 
-                    color: (t) => t.palette.mode === 'dark' ? '#ffffff' : t.palette.text.primary, 
-                    fontSize: '1.0rem', 
-                    minWidth: 80, 
-                  },
-                  '& .MuiTabs-indicator': { 
-                    height: 3, 
-                    borderRadius: 1, 
-                    backgroundColor: '#00ff9d' 
-                  },
-                }}
-              >
-                {groups.map(g => <Tab key={g.id} label={g.name} value={g.id} />)}
-              </Tabs>
+              <Tabs
+  value={selectedTab || false}
+  onChange={(_, v) => setSelectedTab(v as number)}
+  variant="scrollable"
+  scrollButtons="auto"
+  allowScrollButtonsMobile
+  centered
+  sx={{
+    '& .MuiTabs-scroller': {
+      overflowX: 'auto',
+      scrollbarWidth: 'none',
+      '&::-webkit-scrollbar': { display: 'none' },
+    },
+    '& .MuiTabs-flexContainer': {
+      flexWrap: 'wrap',
+      gap: 1,
+    },
+    '& .MuiTab-root': {
+      fontWeight: 800,
+      color: 'white',
+      fontSize: { xs: '0.85rem', sm: '1rem' },
+      minWidth: { xs: 60, sm: 80 },
+      py: 1.5,
+      borderRadius: 3,
+      transition: 'all 0.2s',
+      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
+    },
+    '& .MuiTabs-indicator': {
+      height: 4,
+      borderRadius: 2,
+      background: 'linear-gradient(90deg, #00ff9d, #00b86e)',
+      boxShadow: '0 0 12px #00ff9d',
+    },
+  }}
+>
+  {groups.map(g => (
+    <Tab key={g.id} label={g.name} value={g.id} />
+  ))}
+</Tabs>
             </Paper>
           </Box>
         </AppBar>
@@ -782,14 +785,15 @@ function App() {
           ) : (
             <Box sx={{ 
               display: 'grid', 
-              gridTemplateColumns: 'repeat(6, 1fr)', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
               gap: 3.5, 
               pb: 10 
             }}>
-              {/* 渲染当前选中分组下的站点卡片 */}
+              {/* 渲染当前选中分组下的站点卡片，并应用了垂直居中布局和隐藏描述 */}
               {currentGroup?.sites?.map((site: Site) => (
                 <Paper
                   key={site.id}
+                  // 💡 修改：这里 component="a" 保持跳转，但内部的删除按钮会阻止跳转
                   component="a"
                   href={site.url}
                   target="_blank"
@@ -807,7 +811,7 @@ function App() {
                     flexDirection: 'column', 
                     alignItems: 'center', 
                     textAlign: 'center',
-                    position: 'relative', 
+                    position: 'relative', // 💡 新增：使内部删除按钮能定位
                     
                     textDecoration: 'none',
                     color: 'inherit',
@@ -818,13 +822,13 @@ function App() {
                     },
                   }}
                 >
-                  {/* 删除站点按钮 */}
+                  {/* 💡 新增：删除站点按钮 - 只有登录后才显示 */}
                   {isAuthenticated && (
                       <IconButton
                           size="small"
                           onClick={(e) => {
-                              e.preventDefault(); 
-                              e.stopPropagation(); 
+                              e.preventDefault(); // 阻止卡片链接跳转
+                              e.stopPropagation(); // 阻止事件冒泡
                               if (window.confirm(`确定删除站点 "${site.name}" 吗?`)) {
                                   handleSiteDelete(site.id!);
                               }
@@ -853,9 +857,11 @@ function App() {
                       src={site.icon || `https://api.iowen.cn/favicon/${extractDomain(site.url)}`} 
                       alt={site.name}
                       style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                      onError={e => {
-                        e.currentTarget.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23666"/><text y="55" font-size="50" fill="%23fff" text-anchor="middle" x="50">${site.name.charAt(0)}</text></svg>`;
-                      }}
+                     //  onError={e => {
+                     //   e.currentTarget.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23666"/><text y="55" font-size="50" fill="%23fff" text-anchor="middle" x="50">${site.name.charAt(0)}</text></svg>`;
+                    onError={e => {
+e.currentTarget.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23333"/><text y="60" font-size="48" fill="%23fff" text-anchor="middle" x="50" font-weight="bold">${site.name.charAt(0).toUpperCase()}</text></svg>`;
+}}
                     />
                   </Box>
                   
@@ -864,8 +870,8 @@ function App() {
                     {site.name}
                   </Typography>
                   
-                  {/* 💡 修复：如果 description 为空字符串或 null，则不显示任何内容 */}
-                  {site.description && (
+                  {/* 网站描述 - 只有非空且不为 '暂无描述' 时才显示 */}
+                  {site.description && site.description !== '暂无描述' && (
                     <Typography variant="caption" noWrap sx={{ opacity: 0.7, fontSize: '0.75rem', color: 'text.secondary', maxWidth: '100%' }}>
                       {site.description}
                     </Typography>
@@ -876,18 +882,7 @@ function App() {
           )}
 
           {/* 管理菜单组件 */}
-          <Menu 
-            anchorEl={menuAnchorEl} 
-            open={openMenu} 
-            onClose={handleMenuClose}
-            // 修复：确保菜单在小屏幕上有最大高度和可滚动性
-            PaperProps={{
-              style: {
-                maxHeight: '80vh', 
-                overflowY: 'auto', 
-              }
-            }}
-          >
+          <Menu anchorEl={menuAnchorEl} open={openMenu} onClose={handleMenuClose}>
             <MenuItem onClick={() => { setSortMode(SortMode.GroupSort); handleMenuClose(); }}>
               <ListItemIcon><SortIcon /></ListItemIcon>
               <ListItemText>编辑分组排序</ListItemText>
@@ -902,12 +897,12 @@ function App() {
             
             <Divider />
             
-            {/* 删除当前分组 */}
+            {/* 💡 新增：删除当前分组 */}
             {currentGroup && (
                 <MenuItem 
                     onClick={() => { handleGroupDelete(currentGroup.id!); handleMenuClose(); }} 
                     sx={{ color: 'error.main' }}
-                    disabled={groups.length === 1} 
+                    disabled={groups.length === 1} // 至少保留一个分组
                 >
                     <ListItemIcon sx={{ color: 'error.main' }}>
                         <DeleteIcon />
@@ -1010,28 +1005,42 @@ function App() {
           </DialogActions>
         </Dialog>
 
-        {/* 新增站点对话框 */}
+        {/* 💡 新增：新增站点对话框 */}
         <Dialog open={openAddSite} onClose={handleCloseAddSite} maxWidth="sm" fullWidth>
           <DialogTitle>新增站点 (分组: {currentGroup?.name}) <IconButton onClick={handleCloseAddSite} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
                 <TextField autoFocus fullWidth label="站点名称" value={newSite.name || ''} name="name" onChange={handleSiteInputChange} />
                 <TextField fullWidth label="URL" value={newSite.url || ''} name="url" onChange={handleSiteInputChange} />
-                
-                {/* 自动搜索图标的输入框 */}
-                <TextField 
-                  fullWidth 
-                  label="图标URL (可选)" 
-                  value={newSite.icon || ''} 
-                  name="icon" 
-                  onChange={handleSiteInputChange}
-                  helperText={
-                      newSite.url && newSite.url.startsWith('http') && newSite.icon
-                      ? `图标链接 (可修改): ${newSite.icon}`
-                      : '输入URL后将自动搜索图标'
-                  }
-                />
-                
+               <TextField
+  fullWidth
+  label="图标URL（自动获取）"
+  value={newSite.icon || ''}
+  InputProps={{
+    readOnly: true,
+    endAdornment: newSite.icon ? (
+      <InputAdornment position="end">
+        <IconButton
+          size="small"
+          edge="end"
+          onClick={() => {
+            if (newSite.url) {
+              const domain = extractDomain(newSite.url);
+              if (domain) {
+                setNewSite(prev => ({
+                  ...prev,
+                  icon: `https://www.google.com/s2/favicons?domain=${domain}&sz=256`
+                }));
+              }
+            }
+          }}
+        >
+          <AutoFixHighIcon fontSize="small" />
+        </IconButton>
+      </InputAdornment>
+    ) : null,
+  }}
+/>
                 <TextField fullWidth label="描述 (可选)" value={newSite.description || ''} name="description" onChange={handleSiteInputChange} />
                 <FormControlLabel control={<Switch checked={newSite.is_public === 1} onChange={e => setNewSite({ ...newSite, is_public: e.target.checked ? 1 : 0 })} />} label="公开站点" />
             </Stack>
