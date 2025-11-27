@@ -715,7 +715,7 @@ function App() {
                 py: 0.5,
               }}
             >
-              <Tabs
+          <Tabs
   value={selectedTab || false}
   onChange={(_, v) => setSelectedTab(v as number)}
   variant="scrollable"
@@ -728,10 +728,7 @@ function App() {
       scrollbarWidth: 'none',
       '&::-webkit-scrollbar': { display: 'none' },
     },
-    '& .MuiTabs-flexContainer': {
-      flexWrap: 'wrap',
-      gap: 1,
-    },
+    '& .MuiTabs-flexContainer': { flexWrap: 'wrap', gap: 1 },
     '& .MuiTab-root': {
       fontWeight: 800,
       color: 'white',
@@ -753,7 +750,7 @@ function App() {
   {groups.map(g => (
     <Tab key={g.id} label={g.name} value={g.id} />
   ))}
-</Tabs>
+</Tabs> 
             </Paper>
           </Box>
         </AppBar>
