@@ -820,30 +820,45 @@ function App() {
                     },
                   }}
                 >
-                  {/* 💡 新增：删除站点按钮 - 只有登录后才显示 */}
-                  {isAuthenticated && (
-                      <IconButton
-                          size="small"
-                          onClick={(e) => {
-                              e.preventDefault(); // 阻止卡片链接跳转
-                              e.stopPropagation(); // 阻止事件冒泡
-                              if (window.confirm(`确定删除站点 "${site.name}" 吗?`)) {
-                                  handleSiteDelete(site.id!);
-                              }
-                          }}
-                          sx={{
-                              position: 'absolute',
-                              top: 8,
-                              right: 8,
-                              zIndex: 10,
-                              color: 'error.light',
-                              opacity: 0.7,
-                              bgcolor: 'rgba(0,0,0,0.4)',
-                              '&:hover': {
-                                  opacity: 1,
-                                  bgcolor: 'rgba(0,0,0,0.6)',
-                              }
-                          }}
+                 {/* 管理员专属：删除 + 编辑双图标 */}
+{isAuthenticated && (
+  <Box sx={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 0.5, zIndex: 10 }}>
+    {/* 编辑小笔 */}
+    <IconButton
+      size="small"
+      onClick={(e) => {
+        e.stopPropagation();        // 阻止触发卡片点击
+        setEditingSite(site);
+        setEditSiteOpen(true);
+      }}
+      sx={{
+        bgcolor: 'rgba(0,255,157,0.15)',
+        color: '#00ff9d',
+        '&:hover': { bgcolor: 'rgba(0,255,157,0.3)' },
+      }}
+    >
+      <EditIcon fontSize="small" />
+    </IconButton>
+
+    {/* 删除垃圾桶 */}
+    <IconButton
+      size="small"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (window.confirm(`确定删除 "${site.name}" 吗？`)) {
+          handleSiteDelete(site.id!);
+        }
+      }}
+      sx={{
+        bgcolor: 'rgba(255,0,0,0.15)',
+        color: '#ff4444',
+        '&:hover': { bgcolor: 'rgba(255,0,0,0.3)' },
+      }}
+    >
+      <DeleteIcon fontSize="small" />
+    </IconButton>
+  </Box>
+)}
                       >
                           <CloseIcon fontSize="small" />
                       </IconButton>
