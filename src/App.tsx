@@ -872,25 +872,28 @@ const [editingSite, setEditingSite] = useState<Site | null>(null);
                   {/* 图标 */}
                   <Box sx={{ width: 56, height: 56, mb: 1.5, borderRadius: 3, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.1)', p: 1 }}>
                     <img
-                      src={site.icon || `https://www.google.com/s2/favicons?domain=${extractDomain(site.url)}&sz=128`}
-                      alt={site.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                     onError={(e) => {
-  const target = e.currentTarget;
-  const firstLetter = site.name.charAt(0).toUpperCase();
-  // 生成一个超好看的大写字母兜底图（磨砂玻璃风）
-  target.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-    <defs>
-      <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style="stop-color:%23404040;stop-opacity:1" />
-        <stop offset="100%" style="stop-color:%23282828;stop-opacity:1" />
-      </linearGradient>
-    </defs>
-    <rect width="100" height="100" fill="url(%23grad)" rx="16"/>
-    <text x="50" y="58" font-family="Arial,Helvetica,sans-serif" font-size="48" font-weight="bold" fill="%23ffffff" text-anchor="middle" dominant-baseline="middle">${firstLetter}</text>
-  </svg>`;
-}}
-                    />
+  src={site.icon || `https://www.google.com/s2/favicons?domain=${extractDomain(site.url)}&sz=128`}
+  alt={site.name}
+  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+  onError={(e) => {
+    const name = site.name || 'X';
+    const letter = name.trim().charAt(0).toUpperCase() || 'X';
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="%23444"/>
+          <stop offset="100%" stop-color="%232a2a2a"/>
+        </linearGradient>
+      </defs>
+      <rect width="100" height="100" fill="url(%23g)" rx="18"/>
+      <text x="50" y="58" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+            font-size="52" font-weight="bold" fill="%23ffffff" text-anchor="middle">${letter}</text>
+    </svg>`;
+
+    e.currentTarget.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }}
+/>
                   </Box>
 
                   <Typography variant="subtitle2" fontWeight="bold" noWrap sx={{ maxWidth: '100%' }}>
