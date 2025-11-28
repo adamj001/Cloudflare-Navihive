@@ -1064,6 +1064,91 @@ const [editingSite, setEditingSite] = useState<Site | null>(null);
             <Button variant="contained" onClick={handleCreateSite}>创建</Button>
           </DialogActions>
         </Dialog>
+        {/* ==================== 编辑站点弹窗 ==================== */}
+<Dialog open={editSiteOpen} onClose={() => setEditSiteOpen(false)} maxWidth="sm" fullWidth>
+  <DialogTitle>
+    编辑站点
+    <IconButton onClick={() => setEditSiteOpen(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
+      <CloseIcon />
+    </IconButton>
+  </DialogTitle>
+
+  {editingSite && (
+    <DialogContent>
+      <Stack spacing={2} sx={{ mt: 1 }}>
+        <TextField
+          autoFocus
+          fullWidth
+          label="站点名称"
+          value={editingSite.name || ''}
+          onChange={(e) => setEditingSite({ ...editingSite, name: e.target.value })}
+        />
+
+        <TextField
+          fullWidth
+          label="URL（修改后会自动刷新图标）"
+          value={editingSite.url || ''}
+          onChange={(e) => {
+            const url = e.target.value;
+            setEditingSite(prev => {
+              if (!prev) return prev;
+              const domain = extractDomain(url);
+              const icon = domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=256` : prev.icon;
+              return { ...prev, url, icon };
+            });
+          }}
+        />
+
+        <TextField
+          fullWidth
+          label="图标URL（可点右侧按钮刷新）"
+          value={editingSite.icon || ''}
+          InputProps={{
+            readOnly: true,
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    const domain = extractDomain(editingSite.url);
+                    if (domain) {
+                      setEditingSite({ ...editingSite, icon: `https://www.google.com/s2/favicons?domain=${domain}&sz=256` });
+                    }
+                  }}
+                >
+                  <AutoFixHighIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+
+        <TextField
+          fullWidth
+          label="描述（可选）"
+          value={editingSite.description || ''}
+          onChange={(e) => setEditingSite({ ...editingSite, description: e.target.value })}
+        />
+      </Stack>
+    </DialogContent>
+  )}
+
+  <DialogActions>
+    <Button onClick={() => setEditSiteOpen(false)}>取消</Button>
+    <Button
+      variant="contained"
+      onClick={async () => {
+        if (editingSite?.id) {
+          await api.updateSite(editingSite.id, editingSite);
+          await fetchData();
+          setEditSiteOpen(false);
+        }
+      }}
+    >
+      保存修改
+    </Button>
+  </DialogActions>
+</Dialog>
 
         {/* 网站设置对话框 */}
         <Dialog open={openConfig} onClose={handleCloseConfig} maxWidth="sm" fullWidth>
