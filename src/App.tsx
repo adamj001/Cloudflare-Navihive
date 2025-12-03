@@ -870,7 +870,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('readonly');
                   )}
 
                   {/* 图标 - 优先使用 site.icon，如果失败且非链接，则显示手动输入的文本或站名首字母 */}
-                  <Box sx={{ width: 56, height: 56, mb: 1.5, borderRadius: 3, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.1)', p: 1 }}>
+                  <Box sx={{ width: 72, height: 72, mb: 1.5, borderRadius: 3, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.1)', p: 1.5 }}>
                     <img
                       // 始终尝试使用 site.icon 作为 src
                       src={site.icon || `https://www.google.com/s2/favicons?domain=${extractDomain(site.url)}&sz=128`}
@@ -895,7 +895,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('readonly');
                             <text 
                               x="50" y="50" 
                               font-family="Arial,Helvetica,sans-serif" 
-                              font-size="52" 
+                              font-size="64" 
                               font-weight="bold" 
                               fill="${textColor}" 
                               text-anchor="middle" 
