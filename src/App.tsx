@@ -124,7 +124,11 @@ function App() {
   const [loginLoading, setLoginLoading] = useState(false);
 
   type ViewMode = 'readonly' | 'edit';
-  const [viewMode, setViewMode] = useState<ViewMode>(['readonly']);
+  // 原代码 (错误):
+// const [viewMode, setViewMode] = useState<ViewMode>(['readonly']); 
+
+// 修正后的代码:
+const [viewMode, setViewMode] = useState<ViewMode>('readonly');
 
   const [configs, setConfigs] = useState<Record<string, string>>(DEFAULT_CONFIGS);
   const [openConfig, setOpenConfig] = useState(false);
