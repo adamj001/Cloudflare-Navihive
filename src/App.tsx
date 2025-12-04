@@ -81,7 +81,7 @@ const DEFAULT_CONFIGS = {
   'site.backgroundImage': '',
   'site.backgroundOpacity': '0.15',
   // 使用 Google Favicon API 作为默认值，因为它比较稳定
-  'site.iconApi': 'https://www.google.com/s2/favicons?domain={domain}&sz=128',
+  'site.iconApi': 'https://www.google.com/s2/favicons?domain={domain}&sz=256',
   'site.searchBoxEnabled': 'true',
   'site.searchBoxGuestEnabled': 'true',
 };
@@ -441,7 +441,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('readonly');
         const domain = extractDomain(value);
         if (domain) {
           // 优先用你配置的 iconApi，不行就用 Google（永远不会挂）
-          const template = configs['site.iconApi'] || 'https://www.google.com/s2/favicons?domain={domain}&sz=128';
+          const template = configs['site.iconApi'] || 'https://www.google.com/s2/favicons?domain={domain}&sz=256';
           updated.icon = template.replace('{domain}', domain);
         }
       } catch (err) {
@@ -870,10 +870,10 @@ const [viewMode, setViewMode] = useState<ViewMode>('readonly');
                   )}
 
                   {/* 图标 - 优先使用 site.icon，如果失败且非链接，则显示手动输入的文本或站名首字母 */}
-                  <Box sx={{ width: 72, height: 72, mb: 1.5, borderRadius: 3, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.1)', p: 1.5 }}>
+                  <Box sx={{ width: 100, height: 100, mb: 1.5, borderRadius: 3, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.1)', p: 1.5 }}>
                     <img
                       // 始终尝试使用 site.icon 作为 src
-                      src={site.icon || `https://www.google.com/s2/favicons?domain=${extractDomain(site.url)}&sz=128`}
+                      src={site.icon || `https://www.google.com/s2/favicons?domain=${extractDomain(site.url)}&sz=256`}
                       alt={site.name}
                       style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                       onError={(e) => {
@@ -1071,7 +1071,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('readonly');
                               const domain = extractDomain(newSite.url);
                               if (domain) {
                                 // 强制从 URL 自动获取图标
-                                const template = configs['site.iconApi'] || 'https://www.google.com/s2/favicons?domain={domain}&sz=128';
+                                const template = configs['site.iconApi'] || 'https://www.google.com/s2/favicons?domain={domain}&sz=256';
                                 setNewSite(prev => ({
                                   ...prev,
                                   icon: template.replace('{domain}', domain)
@@ -1131,7 +1131,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('readonly');
                       if (!prev) return prev;
                       const domain = extractDomain(url);
                       // 自动生成新的默认图标 URL
-                      const template = configs['site.iconApi'] || 'https://www.google.com/s2/favicons?domain={domain}&sz=128';
+                      const template = configs['site.iconApi'] || 'https://www.google.com/s2/favicons?domain={domain}&sz=256';
                       const icon = domain ? template.replace('{domain}', domain) : prev.icon;
                       return { ...prev, url, icon };
                     });
@@ -1156,7 +1156,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('readonly');
                             const domain = extractDomain(editingSite.url);
                             if (domain) {
                               // 强制从 URL 自动获取图标
-                              const template = configs['site.iconApi'] || 'https://www.google.com/s2/favicons?domain={domain}&sz=128';
+                              const template = configs['site.iconApi'] || 'https://www.google.com/s2/favicons?domain={domain}&sz=256';
                               setEditingSite({ ...editingSite, icon: template.replace('{domain}', domain) });
                             } else {
                                handleError('无法从 URL 提取域名');
