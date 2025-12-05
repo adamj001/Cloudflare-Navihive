@@ -720,7 +720,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('readonly');
                 py: 0.5,
               }}
             >
-          <Tabs
+         <Tabs
   value={selectedTab || false}
   onChange={(_, v) => setSelectedTab(v as number)}
   variant="scrollable"
@@ -733,10 +733,14 @@ const [viewMode, setViewMode] = useState<ViewMode>('readonly');
       scrollbarWidth: 'none',
       '&::-webkit-scrollbar': { display: 'none' },
     },
-    '& .MuiTabs-flexContainer': { flexWrap: 'wrap', gap: 1 },
+    '& .MuiTabs-flexContainer': { 
+      // 🐛 修复 1：移除 flexWrap: 'wrap'，允许滚动
+      gap: 1 
+    },
     '& .MuiTab-root': {
       fontWeight: 800,
-      color: 'white',
+      // 🐛 修复 2：使用主题文字颜色，确保亮色模式下可见
+      color: 'text.primary', 
       fontSize: { xs: '0.85rem', sm: '1rem' },
       minWidth: { xs: 60, sm: 80 },
       py: 1.5,
@@ -756,6 +760,7 @@ const [viewMode, setViewMode] = useState<ViewMode>('readonly');
     <Tab key={g.id} label={g.name} value={g.id} />
   ))}
 </Tabs> 
+
             </Paper>
           </Box>
         </AppBar>
