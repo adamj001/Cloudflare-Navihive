@@ -708,19 +708,32 @@ const [viewMode, setViewMode] = useState<ViewMode>('readonly');
               </Box>
           </Container>
           
-          {/* 菜单 Tabs (独立一行，居中，圆角，玻璃效果) */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 1, my: 1, mx: 'auto', width: 'fit-content' }}>
-            <Paper 
-              elevation={4} 
-              sx={{ 
-                backdropFilter: 'blur(16px)', 
-                background: (t) => t.palette.mode === 'dark' ? 'rgba(30,30,30,0.8)' : 'rgba(255,255,255,0.8)', 
-                borderRadius: 4, 
-                px: 1, 
-                py: 0.5,
-              }}
-            >
-        <Tabs
+         {/* 菜单 Tabs (独立一行，居中，圆角，玻璃效果) */}
+<Box 
+    sx={{ 
+        display: 'flex', 
+        py: 1, 
+        my: 1, 
+        mx: 'auto',
+        
+        // 👇 核心修复 1: 确保手机上占满全宽
+        width: { xs: '100%', md: 'fit-content' }, 
+        
+        // 👇 核心修复 2: 确保手机上左对齐，桌面居中
+        justifyContent: { xs: 'flex-start', md: 'center' }, 
+    }}
+>
+    <Paper 
+      elevation={4} 
+      sx={{ 
+        backdropFilter: 'blur(16px)', 
+        background: (t) => t.palette.mode === 'dark' ? 'rgba(30,30,30,0.8)' : 'rgba(255,255,255,0.8)', 
+        borderRadius: 4, 
+        px: 1, 
+        py: 0.5,
+      }}
+    >
+            <Tabs
   value={selectedTab || false}
   onChange={(_, v) => setSelectedTab(v as number)}
    // ... 其他属性保持不变
