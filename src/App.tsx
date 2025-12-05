@@ -721,11 +721,15 @@ const [viewMode, setViewMode] = useState<ViewMode>('readonly');
         
         // 👇 核心修复 2: 确保手机上左对齐，桌面居中
         justifyContent: { xs: 'flex-start', md: 'center' }, 
+               // 确保 Box 本身不会隐藏滚动条
+                overflow: 'visible',
     }}
 >
     <Paper 
       elevation={4} 
       sx={{ 
+            // 🐛 修复滑动问题 2 (防御性宽度): 确保 Paper 容器在手机上填满宽度
+                width: { xs: '100%', md: 'auto' }, 
         backdropFilter: 'blur(16px)', 
         background: (t) => t.palette.mode === 'dark' ? 'rgba(30,30,30,0.8)' : 'rgba(255,255,255,0.8)', 
         borderRadius: 4, 
@@ -750,18 +754,34 @@ const [viewMode, setViewMode] = useState<ViewMode>('readonly');
       gap: 1, 
       // 👇 最终修复：明确强制不换行，覆盖所有潜在的默认值
       flexWrap: 'nowrap', 
-      justifyContent: { xs: 'flex-start', sm: 'flex-start', md: 'center' },
+      justifyContent: 'flex-start', sm: 'flex-start'
     },
     // ... MuiTab-root 和 MuiTabs-indicator 样式保持不变
-  }}
->
-  {groups.map(g => (
-    <Tab key={g.id} label={g.name} value={g.id} />
-  ))}
-</Tabs>
-
+          '& .MuiTab-root': {
+                      fontWeight: 800,
+                      // 🐛 修复亮色模式下不可见问题: 使用主题文字颜色
+                      color: 'text.primary', 
+                      fontSize: { xs: '0.85rem', sm: '1rem' },
+                      minWidth: { xs: 60, sm: 80 },
+                      py: 1.5,
+                      borderRadius: 3,
+                      transition: 'all 0.2s',
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
+                    },
+                    '& .MuiTabs-indicator': {
+                      height: 4,
+                      borderRadius: 2,
+                      background: 'linear-gradient(90deg, #00ff9d, #00b86e)',
+                      boxShadow: '0 0 12px #00ff9d',
+                    },
+                  }}
+                >
+                  {groups.map(g => (
+                    <Tab key={g.id} label={g.name} value={g.id} />
+                  ))}
+                </Tabs>
             </Paper>
-          </Box>
+        </Box>
         </AppBar>
 
         {/* 主要内容区域 */}
