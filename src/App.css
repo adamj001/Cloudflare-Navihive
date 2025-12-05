@@ -1,26 +1,24 @@
-/* app.css - 最终修正版 */
+
+/* app.css - 最终清洁版 */
 /* ---------------------------------------------------------------------- /
-/ 1. 默认主题 (亮色模式) - 修复亮色模式下背景不全和组件颜色问题 /
+/ 1. 默认主题 (亮色模式) & 全局设置 /
 / ---------------------------------------------------------------------- */
 body {
 min-height: 100vh;
 margin: 0;
 padding: 0;
-/* 默认背景 (亮色模式) */
+/* 默认背景 (亮色模式) - 确保在没有 .dark-mode 时是白色/浅色 */
 background-color: #f0f0f0;
 color: #333333;
 transition: background-color 0.3s ease;
-/* 强制允许横向滚动 */
+/* 解决滑动问题：强制允许横向滚动 */
 overflow-x: visible !important;
 }
-/* 强制 MUI 容器在亮色模式下是白色 */
-.MuiPaper-root, .MuiCard-root {
-background-color: #ffffff !important;
-transition: background-color 0.3s ease;
-}
-/* 卡片玻璃磨砂效果 */
+/* 移除所有对 .MuiPaper-root 和 .MuiCard-root 的亮色模式全局硬编码 /
+/ 这些组件现在将完全依赖 App.tsx 中的 <ThemeProvider> 及其 palette.background 设置 */
+/* 卡片玻璃磨砂效果 (不含背景色，只设置滤镜和边框) /
 .glass-card {
-background: rgba(255, 255, 255, 0.05);
+/ 背景色将由主题的 palette.background.paper 自动设置 */
 backdrop-filter: blur(10px);
 border: 1px solid rgba(255, 255, 255, 0.1);
 border-radius: 12px;
@@ -37,7 +35,7 @@ body.dark-mode {
 background: linear-gradient(to bottom, #121212, #1e1e1e);
 color: #ffffff;
 }
-/* 确保深色模式下 MUI 组件背景也变化 */
+/* 确保深色模式下 MUI 组件背景也变化 (这里保留 !important 是为了覆盖 glass-card 的 backdrop-filter 导致的潜在问题) */
 body.dark-mode .MuiPaper-root {
 background-color: #1e1e1e !important;
 }
@@ -56,7 +54,7 @@ border-radius: 8px;
 min-width: 120px;
 }
 }
-/ 添加动画效果 */
+/ 其他动画和媒体查询保持不变 */
 @keyframes pulse {
 0% { opacity: 0.6; transform: scale(0.8); }
 50% { opacity: 1; transform: scale(1.2); }
