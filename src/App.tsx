@@ -58,6 +58,9 @@ import LoginIcon from '@mui/icons-material/Login';
 // 💡 站点编辑/删除需要用到以下图标，虽然功能未完全实现，但 UI 上需要它们
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete'; 
+// 💡 新增：用于管理员图标化登录/退出
+import LockIcon from '@mui/icons-material/Lock';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
 
 
 const isDevEnvironment = import.meta.env.DEV;
@@ -684,46 +687,51 @@ function App() {
                 {/* 管理按钮区域 */}
                 <Stack direction="row" spacing={1} alignItems="center">
                   
-                  {/* === 1. 简化的管理员登录/登出按钮 === */}
+                  {/* === 1. 简化的管理员登录/登出按钮 (图标化) === */}
                   {isAuthenticated ? (
-                    // 认证状态: 显示退出按钮
-                    <Button 
-                      variant="contained" 
+                    // 认证状态: 显示退出按钮 (LockOpenIcon)
+                    <IconButton 
                       color="error" // 使用红色表示退出
-                      size="small" 
-                      startIcon={<LoginIcon sx={{ transform: 'rotate(180deg)' }} />} // 旋转图标表示退出
+                      size="large" // 稍微大一点，图标更易点击
                       onClick={handleLogout}
+                      title="退出登录" // 悬停提示
                       sx={{ 
                           transition: 'all 0.3s', 
                           // 立体效果：悬停时轻微阴影
                           boxShadow: (t) => t.shadows[6],
+                          bgcolor: 'error.main', // 红色背景
+                          color: 'white',
                           '&:hover': { 
-                            boxShadow: '0 0 10px rgba(255,0,0,0.5)', 
-                            transform: 'scale(1.05)',
+                            boxShadow: '0 0 10px rgba(255,0,0,0.8)', 
+                            transform: 'scale(1.1)',
+                            bgcolor: 'error.dark',
                           } 
                       }}
                     >
-                      退出登录
-                    </Button>
+                      <LockOpenIcon />
+                    </IconButton>
                   ) : (
-                    // 未认证状态: 显示登录按钮
-                    <Button 
-                      variant="contained" 
-                      size="small" 
-                      startIcon={<LoginIcon />} 
+                    // 未认证状态: 显示登录按钮 (LockIcon)
+                    <IconButton 
+                      color="primary" // 使用主题色表示登录
+                      size="large" 
                       onClick={() => setIsAuthRequired(true)} // 打开登录对话框
+                      title="管理员登录" // 悬停提示
                       sx={{ 
                           transition: 'all 0.3s', 
                           // 立体效果：悬停时轻微阴影
                           boxShadow: (t) => t.shadows[6],
+                          bgcolor: 'primary.main', // 主色调背景
+                          color: 'black', // 保证对比度
                           '&:hover': { 
-                            boxShadow: '0 0 10px #00ff9d50', 
-                            transform: 'scale(1.05)',
+                            boxShadow: (t) => `0 0 10px ${t.palette.primary.main}80`, 
+                            transform: 'scale(1.1)',
+                            bgcolor: 'primary.dark',
                           } 
                       }}
                     >
-                      管理员登录
-                    </Button>
+                      <LockIcon />
+                    </IconButton>
                   )}
                   {/* ================================== */}
                   
