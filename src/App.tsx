@@ -696,6 +696,9 @@ function App() {
                       onClick={handleLogout}
                       title="退出登录" // 悬停提示
                       sx={{ 
+                        width: 36,  // 新增：自定义宽度缩小背景
+                        height: 36, // 新增：自定义高度缩小背景
+                        padding: 0, // 可选：减少内边距，避免图标外多余空间
                           transition: 'all 0.3s', 
                           // 立体效果：悬停时轻微阴影
                           boxShadow: (t) => t.shadows[6],
