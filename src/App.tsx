@@ -714,7 +714,7 @@ function App() {
                     // 未认证状态: 显示登录按钮 (LockIcon)
                     <IconButton 
                       color="primary" // 使用主题色表示登录
-                      size="large" 
+                      size="medium" 
                       onClick={() => setIsAuthRequired(true)} // 打开登录对话框
                       title="管理员登录" // 悬停提示
                       sx={{ 
@@ -723,8 +723,8 @@ function App() {
                           boxShadow: (t) => t.shadows[6],
                           bgcolor: 'primary.main', // 主色调背景
                           color: 'black', // 保证对比度
-                        width: 40,  // 新增：自定义宽度缩小背景
-                        height: 40, // 新增：自定义高度缩小背景
+                        width: 36,  // 新增：自定义宽度缩小背景
+                        height: 36, // 新增：自定义高度缩小背景
       padding: 0, // 可选：减少内边距，避免图标外多余空间
 
                           '&:hover': { 
