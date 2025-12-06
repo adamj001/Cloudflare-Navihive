@@ -692,7 +692,7 @@ function App() {
                     // 认证状态: 显示退出按钮 (LockOpenIcon)
                     <IconButton 
                       color="error" // 使用红色表示退出
-                      size="large" // 稍微大一点，图标更易点击
+                      size="medium" // 稍微大一点，图标更易点击
                       onClick={handleLogout}
                       title="退出登录" // 悬停提示
                       sx={{ 
