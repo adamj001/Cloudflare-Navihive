@@ -4,13 +4,17 @@ import { MockNavigationClient } from './API/mock';
 import { Site, Group } from './API/http';
 import { GroupWithSites } from './types';
 import ThemeToggle from './components/ThemeToggle';
-import LoginIcon from '@mui/icons-material/Login'; // 登录图标
-import LogoutIcon from '@mui/icons-material/Logout'; // 退出图标
-// import AddIcon from '@mui/icons-material/Add';
+// import LoginIcon from '@mui/icons-material/Login'; // 登录图标 - 移除，使用 Font Awesome
+// import LogoutIcon from '@mui/icons-material/Logout'; // 退出图标 - 移除，使用 Font Awesome
 import LoginForm from './components/LoginForm';
 import SearchBox from './components/SearchBox';
 import { sanitizeCSS, isSecureUrl, extractDomain } from './utils/url';
 import './App.css';
+
+// 1. 💡 引入 Font Awesome 核心组件和 Solid 图标集
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUserCog, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+
 
 import {
   Container,
@@ -60,9 +64,9 @@ import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 // 💡 站点编辑/删除需要用到以下图标，虽然功能未完全实现，但 UI 上需要它们
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete'; 
-// 💡 新增：用于管理员图标化登录/退出
-import LockIcon from '@mui/icons-material/Lock';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
+// 💡 移除：不再使用 MUI 的 Lock/LockOpenIcon
+// import LockIcon from '@mui/icons-material/Lock';
+// import LockOpenIcon from '@mui/icons-material/LockOpen';
 
 
 const isDevEnvironment = import.meta.env.DEV;
@@ -715,7 +719,7 @@ function App() {
                   )}
                    {/* === 1. 简化的管理员登录/登出按钮 (图标化) === */}
                   {isAuthenticated ? (
-                    // 认证状态: 显示退出按钮 (LockOpenIcon)
+                    // 认证状态: 显示退出按钮 (Font Awesome faSignOutAlt)
                     <IconButton 
                       color="error" // 使用红色表示退出
                       size="medium" // 稍微大一点，图标更易点击
@@ -737,10 +741,11 @@ function App() {
                           } 
                       }}
                     >
-                      <LogoutIcon />  {/* 替换为退出图标 */}
+                      {/* 💡 替换为 Font Awesome 退出图标 */}
+                      <FontAwesomeIcon icon={faSignOutAlt} style={{ fontSize: '1.2rem' }} />
                     </IconButton>
                   ) : (
-                    // 未认证状态: 显示登录按钮 (LockIcon)
+                    // 未认证状态: 显示登录按钮 (Font Awesome faUserCog)
                     <IconButton 
                       color="primary" // 使用主题色表示登录
                       size="medium" 
@@ -763,7 +768,8 @@ function App() {
                           } 
                       }}
                     >
-                       <LoginIcon />  {/* 替换为登录图标 */}
+                       {/* 💡 替换为 Font Awesome 管理员图标 */}
+                       <FontAwesomeIcon icon={faUserCog} style={{ fontSize: '1.2rem' }} />
                     </IconButton>
                   )}
                   {/* 主题切换 */}
@@ -1357,3 +1363,4 @@ function App() {
 }
 
 export default App;
+
