@@ -6,6 +6,7 @@ import { GroupWithSites } from './types';
 import ThemeToggle from './components/ThemeToggle';
 import LoginIcon from '@mui/icons-material/Login'; // 登录图标
 import LogoutIcon from '@mui/icons-material/Logout'; // 退出图标
+import LogoutIcon from '@mui/icons-material/AddIcon;
 import LoginForm from './components/LoginForm';
 import SearchBox from './components/SearchBox';
 import { sanitizeCSS, isSecureUrl, extractDomain } from './utils/url';
@@ -812,7 +813,7 @@ function App() {
             py: 0.5,
       }}
     >
-            <Tabs
+           <Tabs
   value={selectedTab || false}
   onChange={(_, v) => setSelectedTab(v as number)}
   variant="scrollable"
@@ -826,34 +827,47 @@ function App() {
     },
     '& .MuiTabs-flexContainer': { 
       gap: 1, 
-      // 👇 最终修复：明确强制不换行，覆盖所有潜在的默认值
       flexWrap: 'nowrap', 
       justifyContent: 'flex-start', sm: 'flex-start'
     },
-    // ... MuiTab-root 和 MuiTabs-indicator 样式保持不变
-          '& .MuiTab-root': {
-                      fontWeight: 800,
-                      // 修复亮色模式下不可见问题: 使用主题文字颜色
-                      color: 'text.primary', 
-                      fontSize: { xs: '0.85rem', sm: '1rem' },
-                      minWidth: { xs: 60, sm: 80 },
-                      py: 1.5,
-                      borderRadius: 3,
-                      transition: 'all 0.2s',
-                      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
-                    },
-                    '& .MuiTabs-indicator': {
-                      height: 4,
-                      borderRadius: 2,
-                      background: 'linear-gradient(90deg, #00ff9d, #00b86e)',
-                      boxShadow: '0 0 12px #00ff9d',
-                    },
-                  }}
-                >
-                  {groups.map(g => (
-                    <Tab key={g.id} label={g.name} value={g.id} />
-                  ))}
-                </Tabs>
+    '& .MuiTab-root': {
+      fontWeight: 800,
+      color: 'text.primary', 
+      fontSize: { xs: '0.85rem', sm: '1rem' },
+      minWidth: { xs: 60, sm: 80 },
+      py: 1.5,
+      borderRadius: 3,
+      transition: 'all 0.2s',
+      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
+    },
+    '& .MuiTabs-indicator': {
+      height: 4,
+      borderRadius: 2,
+      background: 'linear-gradient(90deg, #00ff9d, #00b86e)',
+      boxShadow: '0 0 12px #00ff9d',
+    },
+  }}
+>
+  {groups.map(g => (
+    <Tab key={g.id} label={g.name} value={g.id} />
+  ))}
+
+  {/* 新增：管理员模式下的 "+" Tab，用于添加分组（放在 map 循环之后，作为 Tabs 的最后一个项） */}
+  {isAuthenticated && (
+    <Tab
+      icon={<AddIcon />}
+      onClick={(e) => {
+        e.preventDefault(); // 防止默认 Tab 行为
+        handleOpenAddGroup();
+      }}
+      sx={{
+        minWidth: { xs: 40, sm: 50 }, // 缩小宽度，因为无 label
+        '&:hover': { bgcolor: 'rgba(0,255,157,0.1)' }, // 轻微高亮
+      }}
+      aria-label="添加分组" // 无障碍提示
+    />
+  )}
+</Tabs>
             </Paper>
         </Box>
         </AppBar>
@@ -1028,7 +1042,38 @@ function App() {
                   )}
                 </Paper>
               ))}
-            </Box>
+             {/* 新增：管理员模式下的 "+" 卡片，用于添加站点 */}
+    {isAuthenticated && currentGroup && (
+        <Paper
+            sx={{
+                p: 2.5,
+                borderRadius: 4,
+                bgcolor: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                boxShadow: (t) => t.shadows[16] + ', 0 8px 32px rgba(0,0,0,0.3)',
+                transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                '&:hover': {
+                    transform: 'translateY(-10px) scale(1.05)',
+                    boxShadow: (t) => t.shadows[24] + `, 0 0 40px ${t.palette.primary.main}50`,
+                    bgcolor: darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
+                },
+                minHeight: '180px', // 与站点卡片高度匹配
+            }}
+            onClick={() => handleOpenAddSite(currentGroup.id!)}
+        >
+            <AddIcon sx={{ fontSize: 64, color: 'primary.main' }} />
+            <Typography variant="subtitle2" fontWeight="bold" sx={{ mt: 1 }}>
+                添加站点
+            </Typography>
+        </Paper>
+    )}
+</Box>
           )}
 
           {/* 管理菜单组件 */}
