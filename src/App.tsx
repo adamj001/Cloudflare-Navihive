@@ -6,7 +6,7 @@ import { GroupWithSites } from './types';
 import ThemeToggle from './components/ThemeToggle';
 import LoginIcon from '@mui/icons-material/Login'; // 登录图标
 import LogoutIcon from '@mui/icons-material/Logout'; // 退出图标
-import AddIcon from '@mui/icons-material/AddIcon';
+// import AddIcon from '@mui/icons-material/Add';
 import LoginForm from './components/LoginForm';
 import SearchBox from './components/SearchBox';
 import { sanitizeCSS, isSecureUrl, extractDomain } from './utils/url';
