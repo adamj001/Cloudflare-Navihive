@@ -66,19 +66,19 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, loading = false, error =
                     <Box
             sx={{
               mb: 2,
-              width: 64,  // 稍微改大一点点，看着更大气
-              height: 64,
+              width: 72,  // 稍微改大一点点，看着更大气
+              height: 72,
               borderRadius: '50%',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: '#ff9800', 
+              backgroundColor: 'secondary.main', 
               color: 'white',
               boxShadow: 3, // 加一点阴影，更有层次感
             }}
           >
             {/* 这里使用了刚刚引入的管理员图标 */}
-            <ManageAccountsIcon sx={{ fontSize: 36 }} />
+            <ManageAccountsIcon sx={{ fontSize: 48 }} />
           </Box>
 
           <Typography component='h1' variant='h5' fontWeight='bold' textAlign='center'>
