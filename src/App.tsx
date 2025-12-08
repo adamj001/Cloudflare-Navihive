@@ -4,17 +4,36 @@ import { MockNavigationClient } from './API/mock';
 import { Site, Group } from './API/http';
 import { GroupWithSites } from './types';
 import ThemeToggle from './components/ThemeToggle';
-// import LoginIcon from '@mui/icons-material/Login'; // 登录图标 - 移除，使用 Font Awesome
-// import LogoutIcon from '@mui/icons-material/Logout'; // 退出图标 - 移除，使用 Font Awesome
 import LoginForm from './components/LoginForm';
 import SearchBox from './components/SearchBox';
 import { sanitizeCSS, isSecureUrl, extractDomain } from './utils/url';
 import './App.css';
 
-// 1. 💡 引入 Font Awesome 核心组件和 Solid 图标集
+// 💡 dnd-kit 新增：引入核心组件和工具函数
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  horizontalListSortingStrategy,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserCog, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
-
+// 引入用于拖拽手柄的图标
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 
 import {
   Container,
@@ -48,7 +67,7 @@ import {
   AppBar,
   Tabs,
   Tab,
-  Toolbar,
+  // Toolbar, // 未使用，注释掉
 } from '@mui/material';
 import SortIcon from '@mui/icons-material/Sort';
 import SaveIcon from '@mui/icons-material/Save';
@@ -61,12 +80,9 @@ import FileUploadIcon from '@mui/icons-material/FileUpload';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import MenuIcon from '@mui/icons-material/Menu';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
-// 💡 站点编辑/删除需要用到以下图标，虽然功能未完全实现，但 UI 上需要它们
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete'; 
-// 💡 移除：不再使用 MUI 的 Lock/LockOpenIcon
-// import LockIcon from '@mui/icons-material/Lock';
-// import LockOpenIcon from '@mui/icons-material/LockOpen';
+import ViewModuleIcon from '@mui/icons-material/ViewModule'; // 用于站点排序菜单图标
 
 
 const isDevEnvironment = import.meta.env.DEV;
@@ -89,11 +105,71 @@ const DEFAULT_CONFIGS = {
   'site.customCss': '',
   'site.backgroundImage': '',
   'site.backgroundOpacity': '0.15',
-  // 使用 Google Favicon API 作为默认值，因为它比较稳定
   'site.iconApi': 'https://www.google.com/s2/favicons?domain={domain}&sz=256',
   'site.searchBoxEnabled': 'true',
   'site.searchBoxGuestEnabled': 'true',
 };
+
+// 💡 dnd-kit 新增：可拖拽的 Tab 组件包装器
+function SortableTab(props: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.value });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 2 : 1, // 拖拽时层级更高
+    opacity: isDragging ? 0.5 : 1, // 拖拽时半透明
+    cursor: 'grab'
+  };
+  return (
+    // 将 dnd-kit 的属性应用到 Tab 上
+    <Tab {...props} ref={setNodeRef} style={style} {...attributes} {...listeners} 
+      icon={<DragIndicatorIcon sx={{ fontSize: '1rem', opacity: 0.6, mr: 0.5 }} />}
+      iconPosition="start"
+    />
+  );
+}
+
+// 💡 dnd-kit 新增：可拖拽的站点卡片包装器
+const SortableSiteCard = ({ id, children, disabled }: { id: number, children: React.ReactNode, disabled?: boolean }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id, disabled });
+  
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      zIndex: isDragging ? 100 : 'auto',
+      opacity: isDragging ? 0.5 : 1,
+      touchAction: 'none', // 防止移动端滚动干扰
+    };
+  
+    return (
+      <Box ref={setNodeRef} style={style} {...attributes} {...listeners} sx={{ height: '100%' }}>
+         {children}
+         {/* 在卡片右上角添加一个显眼的拖拽手柄 */}
+         {!disabled && (
+          <Box sx={{ 
+            position: 'absolute', 
+            top: 8, 
+            left: 8, 
+            zIndex: 20, 
+            cursor: 'grab',
+            bgcolor: 'rgba(0,0,0,0.2)',
+            borderRadius: '50%',
+            p: 0.5,
+            display: 'flex'
+          }}>
+             <DragIndicatorIcon fontSize="small" sx={{ color: 'white', opacity: 0.8 }} />
+          </Box>
+         )}
+      </Box>
+    );
+  };
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -114,10 +190,9 @@ function App() {
       createTheme({
         palette: {
           mode: darkMode ? 'dark' : 'light',
-          // 💡 关键修改：明确定义背景色，确保亮色模式使用白色或浅灰色
           background: {
-            default: darkMode ? '#121212' : '#f0f0f0',   // 整个页面背景
-            paper: darkMode ? '#1e1e1e' : '#ffffff',     // Paper/Card 组件背景
+            default: darkMode ? '#121212' : '#f0f0f0',
+            paper: darkMode ? '#1e1e1e' : '#ffffff',
           },
           primary: {
             main: '#00ff9d',
@@ -132,11 +207,11 @@ function App() {
 
   const [groups, setGroups] = useState<GroupWithSites[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // const [error, setError] = useState<string | null>(null); // 未使用，注释掉
   const [selectedTab, setSelectedTab] = useState<number | null>(null);
   const currentGroup = groups.find(g => g.id === selectedTab);
   const [sortMode, setSortMode] = useState<SortMode>(SortMode.None);
-  const [currentSortingGroupId, setCurrentSortingGroupId] = useState<number | null>(null);
+  // const [currentSortingGroupId, setCurrentSortingGroupId] = useState<number | null>(null); // 可以移除，用 selectedTab 即可
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isAuthRequired, setIsAuthRequired] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -182,6 +257,18 @@ function App() {
   const [editSiteOpen, setEditSiteOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
 
+  // 💡 dnd-kit 新增：设置拖拽传感器，优化交互体验
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+        activationConstraint: {
+            distance: 8, // 鼠标移动 8px 后才认为是拖拽，防止误触点击
+        }
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
     setMenuAnchorEl(event.currentTarget);
   };
@@ -190,16 +277,66 @@ function App() {
     setMenuAnchorEl(null);
   };
   
-  const handleSaveGroupOrder = async () => {
-    try {
-      // 这里的逻辑需要确保 groups 数组的顺序被更新后再发送请求
-      const orders = groups.map((g, i) => ({ id: g.id!, order_num: i }));
-      await api.updateGroupOrder(orders);
-      await fetchData();
-      setSortMode(SortMode.None);
-      handleError('分组顺序已保存');
-    } catch {
-      handleError('保存失败');
+  // 💡 修改：处理通用的保存排序逻辑
+  const handleSaveOrder = async () => {
+      try {
+          if (sortMode === SortMode.GroupSort) {
+              // 保存分组顺序
+              const orders = groups.map((g, i) => ({ id: g.id!, order_num: i }));
+              await api.updateGroupOrder(orders);
+              handleError('分组顺序已保存');
+          } else if (sortMode === SortMode.SiteSort && currentGroup) {
+              // 保存站点顺序
+              const siteOrders = currentGroup.sites.map((site, index) => ({ id: site.id as number, order_num: index }));
+              await api.updateSiteOrder(siteOrders);
+              handleError('站点顺序已保存');
+          }
+          // 保存成功后刷新数据并退出排序模式
+          await fetchData();
+          setSortMode(SortMode.None);
+      } catch (error) {
+        console.error('保存排序失败:', error);
+        handleError('保存失败: ' + (error as Error).message);
+      }
+  };
+
+  // 💡 dnd-kit 新增：处理拖拽结束事件的核心逻辑
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    // 如果没有拖拽到有效目标上，或者目标就是自己，则不做处理
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    if (sortMode === SortMode.GroupSort) {
+        // --- 处理分组拖拽 ---
+        setGroups((items) => {
+            const oldIndex = items.findIndex(i => i.id === active.id);
+            const newIndex = items.findIndex(i => i.id === over.id);
+            // 使用 dnd-kit 提供的 arrayMove 工具函数重新排列数组
+            return arrayMove(items, oldIndex, newIndex);
+        });
+    } else if (sortMode === SortMode.SiteSort && currentGroup) {
+        // --- 处理站点拖拽 ---
+        setGroups(prevGroups => {
+            // 1. 找到当前正在操作的分组索引
+            const groupIndex = prevGroups.findIndex(g => g.id === currentGroup.id);
+            if(groupIndex === -1) return prevGroups;
+
+            // 2. 获取该分组下的旧站点列表
+            const currentSites = prevGroups[groupIndex].sites;
+            const oldIndex = currentSites.findIndex(s => s.id === active.id);
+            const newIndex = currentSites.findIndex(s => s.id === over.id);
+            
+            // 3. 创建新的分组数组副本
+            const newGroups = [...prevGroups];
+            // 4. 更新特定分组下的站点列表顺序
+            newGroups[groupIndex] = {
+                ...newGroups[groupIndex],
+                sites: arrayMove(currentSites, oldIndex, newIndex)
+            };
+            return newGroups;
+        });
     }
   };
 
@@ -251,6 +388,8 @@ function App() {
     await api.logout();
     setIsAuthenticated(false);
     setViewMode('readonly');
+    // 退出登录时如果处于排序模式，强制退出
+    setSortMode(SortMode.None);
     await fetchData();
     handleError('已退出登录');
   };
@@ -270,7 +409,6 @@ function App() {
     checkAuthStatus();
   }, []);
   
-  // 💡 关键修改：同步 body 上的 .dark-mode class，配合 app.css 覆盖默认 body 背景
   useEffect(() => {
     if (darkMode) {
       document.body.classList.add('dark-mode');
@@ -311,15 +449,20 @@ function App() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      setError(null);
+      // setError(null); // 未使用
       const groupsWithSites = await api.getGroupsWithSites();
-      setGroups(groupsWithSites);
-      // 确保选中第一个 Tab
-      if (groupsWithSites.length > 0 && selectedTab === null) {
-        setSelectedTab(groupsWithSites[0].id);
-      } else if (selectedTab !== null && !groupsWithSites.some(g => g.id === selectedTab)) {
-        // 如果当前选中项被删除，则切换到第一个分组
-        setSelectedTab(groupsWithSites.length > 0 ? groupsWithSites[0].id : null);
+      // 确保站点已排序 (虽然后端可能已排好，前端再确保一次)
+      const sortedGroups = groupsWithSites.map(g => ({
+        ...g,
+        sites: g.sites.sort((a, b) => a.order_num - b.order_num)
+      })).sort((a,b) => a.order_num - b.order_num);
+
+      setGroups(sortedGroups);
+
+      if (sortedGroups.length > 0 && selectedTab === null) {
+        setSelectedTab(sortedGroups[0].id);
+      } else if (selectedTab !== null && !sortedGroups.some(g => g.id === selectedTab)) {
+        setSelectedTab(sortedGroups.length > 0 ? sortedGroups[0].id : null);
       }
     } catch (error) {
       console.error('加载数据失败:', error);
@@ -329,20 +472,9 @@ function App() {
     }
   };
 
-  const handleSiteUpdate = async (updatedSite: Site) => {
-    try {
-      if (updatedSite.id) {
-        await api.updateSite(updatedSite.id, updatedSite);
-        await fetchData();
-      }
-    } catch (error) {
-      console.error('更新站点失败:', error);
-      handleError('更新站点失败: ' + (error as Error).message);
-    }
-  };
+  // const handleSiteUpdate = async (updatedSite: Site) => { ... } // 未直接使用，逻辑在 Dialog 中，注释掉以精简
 
   const handleSiteDelete = async (siteId: number) => {
-    // 💡 修复：使用自定义对话框或 Snackbar/Alert 替代 window.confirm
     // 由于此环境限制，暂时使用一个简单的函数来模拟确认，但保持逻辑不变
     if (confirm(`确定删除站点ID: ${siteId} 吗？`)) { 
         try {
@@ -355,20 +487,9 @@ function App() {
     }
   };
 
-  const handleGroupUpdate = async (updatedGroup: Group) => {
-    try {
-      if (updatedGroup.id) {
-        await api.updateGroup(updatedGroup.id, updatedGroup);
-        await fetchData();
-      }
-    } catch (error) {
-      console.error('更新分组失败:', error);
-      handleError('更新分组失败: ' + (error as Error).message);
-    }
-  };
+  // const handleGroupUpdate = async (updatedGroup: Group) => { ... } // 未直接使用，注释掉
 
   const handleGroupDelete = async (groupId: number) => {
-    // 💡 修复：使用自定义对话框或 Snackbar/Alert 替代 window.confirm
     if (confirm('警告：删除分组会同时删除该分组下的所有站点！确定删除吗？')) {
         try {
             await api.deleteGroup(groupId);
@@ -381,31 +502,21 @@ function App() {
     }
   };
 
-  const handleSaveSiteOrder = async (groupId: number, sites: Site[]) => {
-    try {
-      const siteOrders = sites.map((site, index) => ({ id: site.id as number, order_num: index }));
-      const result = await api.updateSiteOrder(siteOrders);
-      if (result) {
-        await fetchData();
-      } else {
-        throw new Error('站点排序更新失败');
-      }
-      setSortMode(SortMode.None);
-      setCurrentSortingGroupId(null);
-    } catch (error) {
-      console.error('更新站点排序失败:', error);
-      handleError('更新站点排序失败: ' + (error as Error).message);
+  // 旧的 handleSaveSiteOrder 和 handleSaveGroupOrder 已被新的 handleSaveOrder 替代
+
+  const startSiteSort = () => {
+    if (!currentGroup || currentGroup.sites.length === 0) {
+        handleError("当前分组没有可排序的站点");
+        return;
     }
-  };
-
-  const startSiteSort = (groupId: number) => {
     setSortMode(SortMode.SiteSort);
-    setCurrentSortingGroupId(groupId);
+    handleMenuClose();
   };
 
-  const cancelSort = () => {
+  const cancelSort = async () => {
     setSortMode(SortMode.None);
-    setCurrentSortingGroupId(null);
+    // 取消排序时，重新拉取数据以恢复之前的顺序
+    await fetchData();
   };
 
   const handleOpenAddGroup = () => {
@@ -439,7 +550,6 @@ function App() {
     }
   };
 
-  // 💡 修改：站点新增流程，确保 group_id 传入
   const handleOpenAddSite = (groupId: number) => {
     const group = groups.find((g) => g.id === groupId);
     const maxOrderNum = group?.sites.length ? Math.max(...group.sites.map((s) => s.order_num)) + 1 : 0;
@@ -449,7 +559,7 @@ function App() {
       icon: '',
       description: '',
       notes: '',
-      group_id: groupId, // 确保 group_id 被设置
+      group_id: groupId,
       order_num: maxOrderNum,
       is_public: 1,
     });
@@ -464,13 +574,10 @@ function App() {
   const { name, value } = e.target;
   setNewSite(prev => {
     let updated = { ...prev, [name]: value };
-
-    // 只要用户输入 URL，就自动生成 favicon URL 作为默认值
     if (name === 'url' && value.trim()) {
       try {
         const domain = extractDomain(value);
         if (domain) {
-          // 优先用你配置的 iconApi，不行就用 Google（永远不会挂）
           const template = configs['site.iconApi'] || 'https://www.google.com/s2/favicons?domain={domain}&sz=256';
           updated.icon = template.replace('{domain}', domain);
         }
@@ -478,7 +585,6 @@ function App() {
         console.warn('提取域名失败', err);
       }
     }
-
     return updated;
   });
 };
@@ -634,6 +740,10 @@ function App() {
     );
   }
 
+  // 💡 dnd-kit 新增：准备用于 SortableContext 的 items id 数组
+  const groupIds = useMemo(() => groups.map(g => g.id!), [groups]);
+  const siteIds = useMemo(() => currentGroup?.sites.map(s => s.id!) || [], [currentGroup]);
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -644,30 +754,17 @@ function App() {
         </Alert>
       </Snackbar>
 
-      {/* 💡 关键修改：将硬编码的背景色 #121212 替换为主题的动态背景色 background.default */}
       <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', color: 'text.primary', position: 'relative', overflow: 'hidden' }}>
         {configs['site.backgroundImage'] && isSecureUrl(configs['site.backgroundImage']) && (
           <>
             <Box
               sx={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
+                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                 backgroundImage: `url(${configs['site.backgroundImage']})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
                 zIndex: 0,
                 '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  // 这里的颜色保持动态，与主题背景色形成叠加层
+                  content: '""', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                   backgroundColor: darkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.3)',
                   zIndex: 1,
                 },
@@ -676,13 +773,11 @@ function App() {
           </>
         )}
 
-        {/* 顶部固定栏：标题和管理按钮 */}
+        {/* 顶部固定栏 */}
         <AppBar position="sticky" color="transparent" elevation={0} sx={{
             backdropFilter: 'blur(16px)',
-            // 确保 AppBar 背景也跟随主题切换
             background: (t) => t.palette.mode === 'dark' ? 'rgba(18, 18, 18, 0.7)' : 'rgba(255, 255, 255, 0.7)',
-            zIndex: 100,
-            pt: 1,
+            zIndex: 100, pt: 1,
           }}>
           <Container maxWidth="xl" sx={{ py: 1 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -693,173 +788,137 @@ function App() {
                 {/* 管理按钮区域 */}
                 <Stack direction="row" spacing={1} alignItems="center">
                   
-                 
-                  {/* ================================== */}
-                  
                   {isAuthenticated && sortMode === SortMode.None && (
                     <>
-                      {/* 💡 新增：新增站点按钮 */}
-                                          
                       {/* 主菜单按钮 */}
                       <IconButton onClick={handleMenuOpen} color="inherit">
                         <MenuIcon />
                       </IconButton>
                     </>
                   )}
+                  
+                  {/* 💡 修改：统一的保存/取消排序按钮显示逻辑 */}
                   {isAuthenticated && sortMode !== SortMode.None && (
                     <>
-                      {/* 排序按钮 */}
-                      <Button variant="contained" size="small" startIcon={<SaveIcon />} onClick={handleSaveGroupOrder}>
-                          保存排序
+                      <Button 
+                        variant="contained" 
+                        size="small" 
+                        startIcon={<SaveIcon />} 
+                        // 点击保存时，根据当前模式调用统一的保存接口
+                        onClick={handleSaveOrder}
+                        sx={{ 
+                          // 排序模式下给予明显的颜色提示
+                          bgcolor: sortMode === SortMode.GroupSort ? 'warning.main' : 'info.main',
+                          '&:hover': {
+                             bgcolor: sortMode === SortMode.GroupSort ? 'warning.dark' : 'info.dark',
+                          }
+                        }}
+                      >
+                          {sortMode === SortMode.GroupSort ? '保存分组排序' : '保存站点排序'}
                       </Button>
                       <Button variant="outlined" size="small" startIcon={<CancelIcon />} onClick={cancelSort}>
                           取消
                       </Button>
                     </>
                   )}
-                   {/* === 1. 简化的管理员登录/登出按钮 (图标化) === */}
+
                   {isAuthenticated ? (
-                    // 认证状态: 显示退出按钮 (Font Awesome faSignOutAlt)
                     <IconButton 
-                      color="error" // 使用红色表示退出
-                      size="medium" // 稍微大一点，图标更易点击
-                      onClick={handleLogout}
-                      title="退出登录" // 悬停提示
+                      color="error" size="medium" onClick={handleLogout} title="退出登录"
                       sx={{ 
-                        width: 36,  // 新增：自定义宽度缩小背景
-                        height: 36, // 新增：自定义高度缩小背景
-                        padding: 0, // 可选：减少内边距，避免图标外多余空间
-                          transition: 'all 0.3s', 
-                          // 立体效果：悬停时轻微阴影
-                          boxShadow: (t) => t.shadows[6],
-                          bgcolor: 'error.main', // 红色背景
-                          color: 'white',
-                          '&:hover': { 
-                            boxShadow: '0 0 10px rgba(255,0,0,0.8)', 
-                            transform: 'scale(1.1)',
-                            bgcolor: 'error.dark',
-                          } 
+                        width: 36, height: 36, padding: 0, transition: 'all 0.3s', 
+                          boxShadow: (t) => t.shadows[6], bgcolor: 'error.main', color: 'white',
+                          '&:hover': { boxShadow: '0 0 10px rgba(255,0,0,0.8)', transform: 'scale(1.1)', bgcolor: 'error.dark' } 
                       }}
                     >
-                      {/* 💡 替换为 Font Awesome 退出图标 */}
                       <FontAwesomeIcon icon={faSignOutAlt} style={{ fontSize: '1.2rem' }} />
                     </IconButton>
                   ) : (
-                    // 未认证状态: 显示登录按钮 (Font Awesome faUserCog)
                     <IconButton 
-                      color="primary" // 使用主题色表示登录
-                      size="medium" 
-                      onClick={() => setIsAuthRequired(true)} // 打开登录对话框
-                      title="管理员登录" // 悬停提示
+                      color="primary" size="medium" onClick={() => setIsAuthRequired(true)} title="管理员登录"
                       sx={{ 
-                          transition: 'all 0.3s', 
-                          // 立体效果：悬停时轻微阴影
-                          boxShadow: (t) => t.shadows[6],
-                          bgcolor: 'primary.main', // 主色调背景
-                          color: 'black', // 保证对比度
-                        width: 36,  // 新增：自定义宽度缩小背景
-                        height: 36, // 新增：自定义高度缩小背景
-      padding: 0, // 可选：减少内边距，避免图标外多余空间
-
-                          '&:hover': { 
-                            boxShadow: (t) => `0 0 10px ${t.palette.primary.main}80`, 
-                            transform: 'scale(1.1)',
-                            bgcolor: 'primary.dark',
-                          } 
+                          transition: 'all 0.3s', boxShadow: (t) => t.shadows[6], bgcolor: 'primary.main', color: 'black',
+                        width: 36, height: 36, padding: 0,
+                          '&:hover': { boxShadow: (t) => `0 0 10px ${t.palette.primary.main}80`, transform: 'scale(1.1)', bgcolor: 'primary.dark' } 
                       }}
                     >
-                       {/* 💡 替换为 Font Awesome 管理员图标 */}
                        <FontAwesomeIcon icon={faUserCog} style={{ fontSize: '1.2rem' }} />
                     </IconButton>
                   )}
-                  {/* 主题切换 */}
                   <ThemeToggle darkMode={darkMode} onToggle={toggleTheme} />
                 </Stack>
               </Box>
           </Container>
           
-         {/* 菜单 Tabs (独立一行，居中，圆角，玻璃效果) */}
+         {/* 菜单 Tabs */}
 <Box 
     sx={{ 
-        display: 'flex', 
-        py: 1, 
-        my: 1, 
-        mx: 'auto',
-        
+        display: 'flex', py: 1, my: 1, mx: 'auto',
         width: { xs: '100%', md: 'fit-content' }, 
-        
-        justifyContent: { xs: 'flex-start', md: 'center' }, 
-        overflow: 'visible',
+        justifyContent: { xs: 'flex-start', md: 'center' }, overflow: 'visible',
     }}
 >
     <Paper 
       elevation={4} 
       sx={{ 
-            // 修复滑动问题 2 (防御性宽度): 确保 Paper 容器在手机上填满宽度
             width: { xs: '100%', md: 'auto' }, 
             backdropFilter: 'blur(16px)', 
-            // 关键：确保 Paper 背景也跟随主题切换
             background: (t) => t.palette.mode === 'dark' ? 'rgba(30,30,30,0.8)' : 'rgba(255,255,255,0.8)', 
-            borderRadius: 4, 
-            px: 1, 
-            py: 0.5,
+            borderRadius: 4, px: 1, py: 0.5,
+            // 💡 在分组排序模式下添加明显的边框提示
+            border: sortMode === SortMode.GroupSort ? (t) => `2px dashed ${t.palette.warning.main}` : 'none'
       }}
     >
+    
+    {/* 💡 dnd-kit 新增：构建分组的拖拽上下文 */}
+    <DndContext 
+      sensors={sensors} 
+      collisionDetection={closestCenter} 
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext items={groupIds} strategy={horizontalListSortingStrategy}>
            <Tabs
-  value={selectedTab || false}
-  onChange={(_, v) => setSelectedTab(v as number)}
-  variant="scrollable"
-  scrollButtons="auto"
-  allowScrollButtonsMobile
-  sx={{
-    '& .MuiTabs-scroller': {
-      overflowX: 'auto',
-      scrollbarWidth: 'none',
-      '&::-webkit-scrollbar': { display: 'none' },
-    },
-    '& .MuiTabs-flexContainer': { 
-      gap: 1, 
-      flexWrap: 'nowrap', 
-      justifyContent: 'flex-start', sm: 'flex-start'
-    },
-    '& .MuiTab-root': {
-      fontWeight: 800,
-      color: 'text.primary', 
-      fontSize: { xs: '0.85rem', sm: '1rem' },
-      minWidth: { xs: 60, sm: 80 },
-      py: 1.5,
-      borderRadius: 3,
-      transition: 'all 0.2s',
-      '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
-    },
-    '& .MuiTabs-indicator': {
-      height: 4,
-      borderRadius: 2,
-      background: 'linear-gradient(90deg, #00ff9d, #00b86e)',
-      boxShadow: '0 0 12px #00ff9d',
-    },
-  }}
->
-  {groups.map(g => (
-    <Tab key={g.id} label={g.name} value={g.id} />
-  ))}
+              value={selectedTab || false}
+              onChange={(_, v) => setSelectedTab(v as number)}
+              variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile
+              sx={{
+                '& .MuiTabs-scroller': { overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } },
+                '& .MuiTabs-flexContainer': { gap: 1, flexWrap: 'nowrap', justifyContent: 'flex-start' },
+                '& .MuiTab-root': {
+                  fontWeight: 800, color: 'text.primary', fontSize: { xs: '0.85rem', sm: '1rem' },
+                  minWidth: { xs: 60, sm: 80 }, py: 1.5, borderRadius: 3, transition: 'all 0.2s',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
+                  // 💡 排序模式下禁用 Tab 的默认点击波纹，避免冲突
+                  pointerEvents: sortMode === SortMode.GroupSort ? 'none' : 'auto'
+                },
+                '& .MuiTabs-indicator': {
+                  height: 4, borderRadius: 2, background: 'linear-gradient(90deg, #00ff9d, #00b86e)', boxShadow: '0 0 12px #00ff9d',
+                  // 💡 排序模式下隐藏指示器
+                  display: sortMode === SortMode.GroupSort ? 'none' : 'block'
+                },
+              }}
+            >
+              {groups.map(g => (
+                // 💡 核心修改：根据模式判断是渲染普通 Tab 还是可拖拽的 SortableTab
+                sortMode === SortMode.GroupSort ? (
+                  <SortableTab key={g.id} label={g.name} value={g.id} />
+                ) : (
+                  <Tab key={g.id} label={g.name} value={g.id} />
+                )
+              ))}
 
-  {/* 新增：管理员模式下的 "+" Tab，用于添加分组（放在 map 循环之后，作为 Tabs 的最后一个项） */}
-  {isAuthenticated && (
-    <Tab
-      icon={<AddIcon />}
-      onClick={(e) => {
-        e.preventDefault(); // 防止默认 Tab 行为
-        handleOpenAddGroup();
-      }}
-      sx={{
-        minWidth: { xs: 40, sm: 50 }, // 缩小宽度，因为无 label
-        '&:hover': { bgcolor: 'rgba(0,255,157,0.1)' }, // 轻微高亮
-      }}
-      aria-label="添加分组" // 无障碍提示
-    />
-  )}
-</Tabs>
+              {/* 添加分组按钮 (仅非排序模式显示) */}
+              {isAuthenticated && sortMode === SortMode.None && (
+                <Tab
+                  icon={<AddIcon />}
+                  onClick={(e) => { e.preventDefault(); handleOpenAddGroup(); }}
+                  sx={{ minWidth: { xs: 40, sm: 50 }, '&:hover': { bgcolor: 'rgba(0,255,157,0.1)' } }}
+                  aria-label="添加分组"
+                />
+              )}
+            </Tabs>
+        </SortableContext>
+    </DndContext>
             </Paper>
         </Box>
         </AppBar>
@@ -868,20 +927,20 @@ function App() {
         <Container maxWidth="xl" sx={{ py: 3, position: 'relative', zIndex: 2 }}>
           
           {/* 搜索框 */}
-          {configs['site.searchBoxEnabled'] === 'true' && (viewMode === 'edit' || configs['site.searchBoxGuestEnabled'] === 'true') && (
+          {configs['site.searchBoxEnabled'] === 'true' && (viewMode === 'edit' || configs['site.searchBoxGuestEnabled'] === 'true') && sortMode === SortMode.None && (
             <Box sx={{ mb: 4, maxWidth: 600, mx: 'auto' }}>
               <SearchBox
-                groups={groups.map(g => ({
-                  id: g.id,
-                  name: g.name,
-                  order_num: g.order_num,
-                  is_public: g.is_public,
-                  created_at: g.created_at,
-                  updated_at: g.updated_at,
-                }))}
+                groups={groups.map(g => ({ ...g }))}
                 sites={groups.flatMap(g => g.sites || [])}
               />
             </Box>
+          )}
+          
+          {/* 💡 排序模式提示信息 */}
+          {sortMode === SortMode.SiteSort && (
+             <Alert severity="info" sx={{ mb: 3, mx: 'auto', maxWidth: 600, border: (t) => `1px solid ${t.palette.info.main}` }} icon={<DragIndicatorIcon />}>
+                 正在排序模式：请拖动卡片调整顺序，完成后点击顶部“保存站点排序”。
+             </Alert>
           )}
 
           {loading ? (
@@ -889,183 +948,142 @@ function App() {
               <CircularProgress size={60} thickness={4} />
             </Box>
           ) : (
-            <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: { xs: 'repeat(auto-fill, minmax(140px, 1fr))', md: 'repeat(6, 1fr)' },
-              // gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', 
-              gap: 3.5, 
-              pb: 10 
-            }}>
-              {/* 渲染当前选中分组下的站点卡片，并应用了垂直居中布局和隐藏描述 */}
-                            {currentGroup?.sites?.map((site: Site) => (
-                <Paper
-                  key={site.id}
-                  component={isAuthenticated ? 'div' : 'a'}
-                  href={!isAuthenticated ? site.url : undefined}
-                  target={!isAuthenticated ? '_blank' : undefined}
-                  rel={!isAuthenticated ? 'noopener' : undefined}
-                  onClick={() => {
-                    if (isAuthenticated) {
-                      setEditingSite(site);
-                      setEditSiteOpen(true);
-                    }
-                  }}
-                  sx={{
-                    p: 2.5,
+            // 💡 dnd-kit 新增：构建站点的拖拽上下文
+            <DndContext 
+              sensors={sensors} 
+              collisionDetection={closestCenter} 
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext items={siteIds} strategy={rectSortingStrategy}>
+                  <Box sx={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: { xs: 'repeat(auto-fill, minmax(140px, 1fr))', md: 'repeat(6, 1fr)' },
+                    gap: 3.5, 
+                    pb: 10,
+                    // 💡 在站点排序模式下添加明显的边框提示区域
+                    border: sortMode === SortMode.SiteSort ? (t) => `2px dashed ${t.palette.info.main}` : 'none',
                     borderRadius: 4,
-                    // 🚨 玻璃卡片背景色：保持基于 darkMode 的 rgba，以实现透明和模糊效果
-                    bgcolor: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                    backdropFilter: 'blur(12px)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    
-                    // === 2. 增强立体效果 ===
-                    // 初始强阴影 (MUI Elevation 16 + 玻璃效果阴影)
-                    boxShadow: (t) => t.shadows[16] + ', 0 8px 32px rgba(0,0,0,0.3)',
-                    transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
-                    transform: 'translateY(0)', // 确保起始状态
-                    // ======================
-                    
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    textAlign: 'center',
-                    position: 'relative',
-                    cursor: isAuthenticated ? 'pointer' : 'default',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                    '&:hover': {
-                      // 更强的抬升和放大
-                      transform: 'translateY(-10px) scale(1.05)', 
-                      // 悬停阴影：使用最高等级阴影 + 主色调炫光
-                      boxShadow: (t) => t.shadows[24] + `, 0 0 40px ${t.palette.primary.main}50`, 
-                      bgcolor: darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
-                      ...(isAuthenticated && { border: '2px solid #00ff9d' }),
-                    },
-                  }}
-                >
-                  {/* 管理员专属：编辑笔 + 删除垃圾桶 */}
-                  {isAuthenticated && (
-                    <Box sx={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 0.5, zIndex: 10 }}>
-                      {/* 编辑小笔 */}
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingSite(site);
-                          setEditSiteOpen(true);
-                        }}
-                        sx={{
-                          bgcolor: 'rgba(0,255,157,0.15)',
-                          color: '#00ff9d',
-                          '&:hover': { bgcolor: 'rgba(0,255,157,0.3)' },
-                        }}
+                    p: sortMode === SortMode.SiteSort ? 2 : 0,
+                    transition: 'all 0.3s'
+                  }}>
+                    {currentGroup?.sites?.map((site: Site) => {
+                        // 提取卡片主体内容，方便复用
+                        const CardContent = (
+                            <Paper
+                                component={isAuthenticated && sortMode === SortMode.None ? 'div' : 'a'}
+                                href={!isAuthenticated && sortMode === SortMode.None ? site.url : undefined}
+                                target={!isAuthenticated && sortMode === SortMode.None ? '_blank' : undefined}
+                                rel={!isAuthenticated && sortMode === SortMode.None ? 'noopener' : undefined}
+                                onClick={(e) => {
+                                    // 💡 排序模式下阻止点击事件，防止误触发编辑
+                                    if (sortMode !== SortMode.None) {
+                                        e.preventDefault();
+                                        return;
+                                    }
+                                    if (isAuthenticated) {
+                                    setEditingSite(site);
+                                    setEditSiteOpen(true);
+                                    }
+                                }}
+                                sx={{
+                                    p: 2.5,
+                                    borderRadius: 4,
+                                    bgcolor: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                                    backdropFilter: 'blur(12px)',
+                                    border: '1px solid rgba(255,255,255,0.12)',
+                                    boxShadow: (t) => t.shadows[16] + ', 0 8px 32px rgba(0,0,0,0.3)',
+                                    transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
+                                    transform: 'translateY(0)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    textAlign: 'center',
+                                    position: 'relative',
+                                    // 💡 排序模式下改变鼠标手势
+                                    cursor: sortMode !== SortMode.None ? 'grab' : (isAuthenticated ? 'pointer' : 'default'),
+                                    textDecoration: 'none',
+                                    color: 'inherit',
+                                    height: '100%', // 确保高度撑满
+                                    '&:hover': {
+                                      // 排序模式下禁用 hover 效果
+                                      ...(sortMode === SortMode.None && {
+                                          transform: 'translateY(-10px) scale(1.05)', 
+                                          boxShadow: (t) => t.shadows[24] + `, 0 0 40px ${t.palette.primary.main}50`, 
+                                          bgcolor: darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
+                                          ...(isAuthenticated && { border: '2px solid #00ff9d' }),
+                                      })
+                                    },
+                                }}
+                                >
+                                {/* 管理员专属：编辑笔 + 删除垃圾桶 (排序模式下隐藏) */}
+                                {isAuthenticated && sortMode === SortMode.None && (
+                                    <Box sx={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 0.5, zIndex: 10 }}>
+                                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); setEditingSite(site); setEditSiteOpen(true); }} sx={{ bgcolor: 'rgba(0,255,157,0.15)', color: '#00ff9d', '&:hover': { bgcolor: 'rgba(0,255,157,0.3)' }, }}>
+                                        <EditIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleSiteDelete(site.id!); }} sx={{ bgcolor: 'rgba(255,0,0,0.15)', color: '#ff4444', '&:hover': { bgcolor: 'rgba(255,0,0,0.3)' }, }}>
+                                        <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                    </Box>
+                                )}
+
+                                {/* 图标 */}
+                                <Box sx={{ width: 100, height: 100, mb: 1.5, borderRadius: 3, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.1)', p: 1.5 }}>
+                                    <img
+                                    src={site.icon || `https://www.google.com/s2/favicons?domain=${extractDomain(site.url)}&sz=256`}
+                                    alt={site.name}
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' /* 防止拖拽图片 */ }}
+                                    onError={(e) => {
+                                        const isTextIcon = site.icon && site.icon.length > 0 && !site.icon.startsWith('http');
+                                        const displayChar = isTextIcon ? site.icon.trim().charAt(0).toUpperCase() : (site.name?.trim().charAt(0).toUpperCase() || '?');
+                                        const bgColor = darkMode ? '#1e1e1e' : '#f5f5f5'
+                                        const textColor = darkMode ? '#ffffff' : '#000000'
+                                        e.currentTarget.src = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="${bgColor}"/><text x="50" y="50" font-family="Arial,Helvetica,sans-serif" font-size="64" font-weight="bold" fill="${textColor}" text-anchor="middle" dominant-baseline="central">${displayChar}</text></svg>`)}`
+                                    }}
+                                    />
+                                </Box>
+
+                                <Typography variant="subtitle2" fontWeight="bold" noWrap sx={{ maxWidth: '100%' }}>
+                                    {site.name}
+                                </Typography>
+                                {site.description && site.description !== '暂无描述' && (
+                                    <Typography variant="caption" noWrap sx={{ opacity: 0.7, fontSize: '0.75rem', color: 'text.secondary', maxWidth: '100%' }}>
+                                    {site.description}
+                                    </Typography>
+                                )}
+                            </Paper>
+                        );
+
+                        // 💡 核心修改：根据模式判断是渲染普通卡片还是可拖拽的 SortableSiteCard
+                        if (sortMode === SortMode.SiteSort) {
+                            return (
+                                <SortableSiteCard key={site.id} id={site.id!}>
+                                    {CardContent}
+                                </SortableSiteCard>
+                            );
+                        }
+                        return <Box key={site.id} sx={{ height: '100%' }}>{CardContent}</Box>;
+                    })}
+
+                  {/* 添加站点按钮 (仅非排序模式显示) */}
+                  {isAuthenticated && currentGroup && sortMode === SortMode.None && (
+                      <Paper
+                          sx={{
+                              p: 2.5, borderRadius: 4, bgcolor: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.12)',
+                              boxShadow: (t) => t.shadows[16] + ', 0 8px 32px rgba(0,0,0,0.3)', transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                              '&:hover': { transform: 'translateY(-10px) scale(1.05)', boxShadow: (t) => t.shadows[24] + `, 0 0 40px ${t.palette.primary.main}50`, bgcolor: darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)', },
+                              minHeight: '180px', height: '100%'
+                          }}
+                          onClick={() => handleOpenAddSite(currentGroup.id!)}
                       >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-
-                      {/* 删除垃圾桶 */}
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // 💡 修复：使用 confirm 函数
-                          if (confirm(`确定删除 "${site.name}" 吗？`)) {
-                            handleSiteDelete(site.id!);
-                          }
-                        }}
-                        sx={{
-                          bgcolor: 'rgba(255,0,0,0.15)',
-                          color: '#ff4444',
-                          '&:hover': { bgcolor: 'rgba(255,0,0,0.3)' },
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
+                          <AddIcon sx={{ fontSize: 64, color: 'primary.main' }} />
+                          <Typography variant="subtitle2" fontWeight="bold" sx={{ mt: 1 }}>添加站点</Typography>
+                      </Paper>
                   )}
-
-                  {/* 图标 - 优先使用 site.icon，如果失败且非链接，则显示手动输入的文本或站名首字母 */}
-                  <Box sx={{ width: 100, height: 100, mb: 1.5, borderRadius: 3, overflow: 'hidden', bgcolor: 'rgba(255,255,255,0.1)', p: 1.5 }}>
-                    <img
-                      // 始终尝试使用 site.icon 作为 src
-                      src={site.icon || `https://www.google.com/s2/favicons?domain=${extractDomain(site.url)}&sz=256`}
-                      alt={site.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                      onError={(e) => {
-                        // 1. 检查 site.icon 是否是用户手动输入的文本，而不是一个完整的链接
-                        // 如果 site.icon 存在且不是一个以 http 开头的完整链接，我们认为它是一个用户希望显示的字符。
-                        const isTextIcon = site.icon && site.icon.length > 0 && !site.icon.startsWith('http');
-                        
-                        // 确定要显示的字符：用户输入的文本首字符 > 站点名称首字符 > ?
-                        const displayChar = isTextIcon 
-                                           ? site.icon.trim().charAt(0).toUpperCase() 
-                                           : (site.name?.trim().charAt(0).toUpperCase() || '?');
-
-                        const bgColor = darkMode ? '#1e1e1e' : '#f5f5f5'
-                        const textColor = darkMode ? '#ffffff' : '#000000'
-
-                        e.currentTarget.src = `data:image/svg+xml,${encodeURIComponent(`
-                          <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-                            <rect width="100" height="100" rx="20" fill="${bgColor}"/>
-                            <text 
-                              x="50" y="50" 
-                              font-family="Arial,Helvetica,sans-serif" 
-                              font-size="64" 
-                              font-weight="bold" 
-                              fill="${textColor}" 
-                              text-anchor="middle" 
-                              dominant-baseline="central">
-                              ${displayChar}
-                            </text>
-                          </svg>
-                        `)}`
-                      }}
-                    />
-                  </Box>
-
-                  <Typography variant="subtitle2" fontWeight="bold" noWrap sx={{ maxWidth: '100%' }}>
-                    {site.name}
-                  </Typography>
-
-                  {site.description && site.description !== '暂无描述' && (
-                    <Typography variant="caption" noWrap sx={{ opacity: 0.7, fontSize: '0.75rem', color: 'text.secondary', maxWidth: '100%' }}>
-                      {site.description}
-                    </Typography>
-                  )}
-                </Paper>
-              ))}
-             {/* 新增：管理员模式下的 "+" 卡片，用于添加站点 */}
-    {isAuthenticated && currentGroup && (
-        <Paper
-            sx={{
-                p: 2.5,
-                borderRadius: 4,
-                bgcolor: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                boxShadow: (t) => t.shadows[16] + ', 0 8px 32px rgba(0,0,0,0.3)',
-                transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                '&:hover': {
-                    transform: 'translateY(-10px) scale(1.05)',
-                    boxShadow: (t) => t.shadows[24] + `, 0 0 40px ${t.palette.primary.main}50`,
-                    bgcolor: darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)',
-                },
-                minHeight: '180px', // 与站点卡片高度匹配
-            }}
-            onClick={() => handleOpenAddSite(currentGroup.id!)}
-        >
-            <AddIcon sx={{ fontSize: 64, color: 'primary.main' }} />
-            <Typography variant="subtitle2" fontWeight="bold" sx={{ mt: 1 }}>
-                添加站点
-            </Typography>
-        </Paper>
-    )}
-</Box>
+              </Box>
+              </SortableContext>
+            </DndContext>
           )}
 
           {/* 管理菜单组件 */}
@@ -1073,6 +1091,12 @@ function App() {
             <MenuItem onClick={() => { setSortMode(SortMode.GroupSort); handleMenuClose(); }}>
               <ListItemIcon><SortIcon /></ListItemIcon>
               <ListItemText>编辑分组排序</ListItemText>
+            </MenuItem>
+
+            {/* 💡 新增：编辑当前分组站点排序的菜单项 */}
+            <MenuItem onClick={startSiteSort} disabled={!currentGroup || currentGroup.sites.length <= 1}>
+              <ListItemIcon><ViewModuleIcon /></ListItemIcon>
+              <ListItemText>编辑当前分组站点排序</ListItemText>
             </MenuItem>
             
             <Divider />
@@ -1084,12 +1108,11 @@ function App() {
             
             <Divider />
             
-            {/* 💡 新增：删除当前分组 */}
             {currentGroup && (
                 <MenuItem 
                     onClick={() => { handleGroupDelete(currentGroup.id!); handleMenuClose(); }} 
                     sx={{ color: 'error.main' }}
-                    disabled={groups.length === 1} // 至少保留一个分组
+                    disabled={groups.length <= 1}
                 >
                     <ListItemIcon sx={{ color: 'error.main' }}>
                         <DeleteIcon />
@@ -1108,43 +1131,29 @@ function App() {
               <ListItemIcon><FileUploadIcon /></ListItemIcon>
               <ListItemText>导入数据</ListItemText>
             </MenuItem>
-            
-            {/* 💡 移除：退出登录按钮已移到主导航栏 */}
-            
           </Menu>
 
+          {/* Github 悬浮按钮 (排序模式下隐藏) */}
+          {sortMode === SortMode.None && (
           <Box sx={{ position: 'fixed', right: 24, bottom: 24, zIndex: 10 }}>
-            <Paper
-              component="a"
-              href="https://github.com/adamj001/cloudflare-navi"
-              target="_blank"
-              rel="noopener"
-              elevation={2}
+            <Paper component="a" href="https://github.com/adamj001/cloudflare-navi" target="_blank" rel="noopener" elevation={2}
               sx={{
-                p: 1.5,
-                borderRadius: 10,
-                // 确保 GitHub 按钮背景色跟随主题
-                bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-                backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: 'text.secondary',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
-                  transform: 'translateY(-4px)',
-                  boxShadow: 4,
-                },
+                p: 1.5, borderRadius: 10, bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+                backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)', color: 'text.secondary', transition: 'all 0.3s ease',
+                '&:hover': { bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)', transform: 'translateY(-4px)', boxShadow: 4, },
                 textDecoration: 'none',
               }}
             >
               <GitHubIcon />
             </Paper>
           </Box>
+          )}
         </Container>
 
-        {/* 导入数据对话框 */}
+        {/* 对话框组件 (省略了内容，因为没有变动，直接复制原来的即可) */}
         <Dialog open={openImport} onClose={handleCloseImport} maxWidth="sm" fullWidth>
-          <DialogTitle>导入数据</DialogTitle>
+           {/* ... 原有代码 ... */}
+           <DialogTitle>导入数据</DialogTitle>
           <DialogContent>
             <DialogContentText sx={{ mb: 2 }}>请上传您之前导出的 JSON 备份文件。</DialogContentText>
             <input
@@ -1175,8 +1184,8 @@ function App() {
           <LoginForm onLogin={handleLogin} loading={loginLoading} error={loginError} />
         </Dialog>
 
-        {/* 新增分组对话框 */}
         <Dialog open={openAddGroup} onClose={handleCloseAddGroup} maxWidth="sm" fullWidth>
+          {/* ... 原有代码 ... */}
           <DialogTitle>新增分组 <IconButton onClick={handleCloseAddGroup} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
           <DialogContent>
             <TextField autoFocus fullWidth label="分组名称" value={newGroup.name || ''} name="name" onChange={handleGroupInputChange} sx={{ mt: 2 }} />
@@ -1188,8 +1197,8 @@ function App() {
           </DialogActions>
         </Dialog>
 
-        {/* 💡 新增：新增站点对话框 */}
         <Dialog open={openAddSite} onClose={handleCloseAddSite} maxWidth="sm" fullWidth>
+          {/* ... 原有代码 ... */}
           <DialogTitle>新增站点 (分组: {currentGroup?.name}) <IconButton onClick={handleCloseAddSite} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -1199,12 +1208,11 @@ function App() {
                   fullWidth
                   label="图标URL（可手动输入或自动获取缩写）"
                   value={newSite.icon || ''}
-                  name="icon" // <-- 添加 name 以便 handleSiteInputChange 捕获
-                  onChange={handleSiteInputChange} // <-- 允许手动输入
+                  name="icon" 
+                  onChange={handleSiteInputChange} 
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
-                        {/* 点击按钮自动获取图标 */}
                         <IconButton
                           size="small"
                           edge="end"
@@ -1212,7 +1220,6 @@ function App() {
                             if (newSite.url) {
                               const domain = extractDomain(newSite.url);
                               if (domain) {
-                                // 强制从 URL 自动获取图标
                                 const template = configs['site.iconApi'] || 'https://www.google.com/s2/favicons?domain={domain}&sz=256';
                                 setNewSite(prev => ({
                                   ...prev,
@@ -1243,8 +1250,8 @@ function App() {
           </DialogActions>
         </Dialog>
         
-        {/* ==================== 编辑站点弹窗 ==================== */}
         <Dialog open={editSiteOpen} onClose={() => setEditSiteOpen(false)} maxWidth="sm" fullWidth>
+          {/* ... 原有代码 ... */}
           <DialogTitle>
             编辑站点
             <IconButton onClick={() => setEditSiteOpen(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
@@ -1272,7 +1279,6 @@ function App() {
                     setEditingSite(prev => {
                       if (!prev) return prev;
                       const domain = extractDomain(url);
-                      // 自动生成新的默认图标 URL
                       const template = configs['site.iconApi'] || 'https://www.google.com/s2/favicons?domain={domain}&sz=256';
                       const icon = domain ? template.replace('{domain}', domain) : prev.icon;
                       return { ...prev, url, icon };
@@ -1284,7 +1290,7 @@ function App() {
                   fullWidth
                   label="图标URL（可手动输入或自动获取缩写）"
                   value={editingSite.icon || ''}
-                  onChange={(e) => setEditingSite({ ...editingSite, icon: e.target.value })} // <-- 允许手动输入
+                  onChange={(e) => setEditingSite({ ...editingSite, icon: e.target.value })} 
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -1297,7 +1303,6 @@ function App() {
                             }
                             const domain = extractDomain(editingSite.url);
                             if (domain) {
-                              // 强制从 URL 自动获取图标
                               const template = configs['site.iconApi'] || 'https://www.google.com/s2/favicons?domain={domain}&sz=256';
                               setEditingSite({ ...editingSite, icon: template.replace('{domain}', domain) });
                             } else {
@@ -1340,8 +1345,8 @@ function App() {
           </DialogActions>
         </Dialog>
 
-        {/* 网站设置对话框 */}
         <Dialog open={openConfig} onClose={handleCloseConfig} maxWidth="sm" fullWidth>
+          {/* ... 原有代码 ... */}
           <DialogTitle>网站设置 <IconButton onClick={handleCloseConfig} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
           <DialogContent>
             <Stack spacing={2}>
@@ -1363,4 +1368,3 @@ function App() {
 }
 
 export default App;
-
