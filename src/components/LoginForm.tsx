@@ -10,8 +10,8 @@ import {
   FormControlLabel,
   Checkbox,
 } from '@mui/material';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 interface LoginFormProps {
   onLogin: (username: string, password: string, rememberMe: boolean) => void;
   loading?: boolean;
@@ -76,7 +76,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, loading = false, error =
               color: 'white',
             }}
           >
-            <LockOutlinedIcon fontSize='large' />
+            <ManageAccountsIcon fontSize='large' />
           </Box>
           <Typography component='h1' variant='h5' fontWeight='bold' textAlign='center'>
             导航站登录
