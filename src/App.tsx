@@ -974,12 +974,18 @@ function App() {
                                 href={!isAuthenticated && sortMode === SortMode.None ? site.url : undefined}
                                 target={!isAuthenticated && sortMode === SortMode.None ? '_blank' : undefined}
                                 rel={!isAuthenticated && sortMode === SortMode.None ? 'noopener' : undefined}
-                                onClick={(e) => {
-                                    // 💡 排序模式下阻止点击事件，防止误触发编辑
-                                    if (sortMode !== SortMode.None) {
-                                        e.preventDefault();
-                                        return;
-                                    }
+                                // ...
+<Paper
+    component={isAuthenticated && sortMode === SortMode.None ? 'div' : 'a'}
+    // ...
+    // ▼▼▼ 修改了这里 ▼▼▼
+    onClick={(e: React.MouseEvent) => {
+        // 💡 排序模式下阻止点击事件，防止误触发编辑
+        if (sortMode !== SortMode.None) {
+            e.preventDefault();
+            return;
+        }
+
                                     if (isAuthenticated) {
                                     setEditingSite(site);
                                     setEditSiteOpen(true);
