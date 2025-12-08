@@ -207,11 +207,9 @@ function App() {
 
   const [groups, setGroups] = useState<GroupWithSites[]>([]);
   const [loading, setLoading] = useState(true);
-  // const [error, setError] = useState<string | null>(null); // 未使用，注释掉
   const [selectedTab, setSelectedTab] = useState<number | null>(null);
   const currentGroup = groups.find(g => g.id === selectedTab);
   const [sortMode, setSortMode] = useState<SortMode>(SortMode.None);
-  // const [currentSortingGroupId, setCurrentSortingGroupId] = useState<number | null>(null); // 可以移除，用 selectedTab 即可
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isAuthRequired, setIsAuthRequired] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -449,7 +447,6 @@ function App() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // setError(null); // 未使用
       const groupsWithSites = await api.getGroupsWithSites();
       // 确保站点已排序 (虽然后端可能已排好，前端再确保一次)
       const sortedGroups = groupsWithSites.map(g => ({
@@ -472,8 +469,6 @@ function App() {
     }
   };
 
-  // const handleSiteUpdate = async (updatedSite: Site) => { ... } // 未直接使用，逻辑在 Dialog 中，注释掉以精简
-
   const handleSiteDelete = async (siteId: number) => {
     // 由于此环境限制，暂时使用一个简单的函数来模拟确认，但保持逻辑不变
     if (confirm(`确定删除站点ID: ${siteId} 吗？`)) { 
@@ -487,8 +482,6 @@ function App() {
     }
   };
 
-  // const handleGroupUpdate = async (updatedGroup: Group) => { ... } // 未直接使用，注释掉
-
   const handleGroupDelete = async (groupId: number) => {
     if (confirm('警告：删除分组会同时删除该分组下的所有站点！确定删除吗？')) {
         try {
@@ -501,8 +494,6 @@ function App() {
         }
     }
   };
-
-  // 旧的 handleSaveSiteOrder 和 handleSaveGroupOrder 已被新的 handleSaveOrder 替代
 
   const startSiteSort = () => {
     if (!currentGroup || currentGroup.sites.length === 0) {
@@ -974,21 +965,16 @@ function App() {
                                 href={!isAuthenticated && sortMode === SortMode.None ? site.url : undefined}
                                 target={!isAuthenticated && sortMode === SortMode.None ? '_blank' : undefined}
                                 rel={!isAuthenticated && sortMode === SortMode.None ? 'noopener' : undefined}
-                                // ...
-<Paper
-    component={isAuthenticated && sortMode === SortMode.None ? 'div' : 'a'}
-    // ...
-    // ▼▼▼ 修改了这里 ▼▼▼
-    onClick={(e: React.MouseEvent) => {
-        // 💡 排序模式下阻止点击事件，防止误触发编辑
-        if (sortMode !== SortMode.None) {
-            e.preventDefault();
-            return;
-        }
+                                onClick={(e: React.MouseEvent) => {
+                                    // 💡 排序模式下阻止点击事件，防止误触发编辑
+                                    if (sortMode !== SortMode.None) {
+                                        e.preventDefault();
+                                        return;
+                                    }
 
                                     if (isAuthenticated) {
-                                    setEditingSite(site);
-                                    setEditSiteOpen(true);
+                                        setEditingSite(site);
+                                        setEditSiteOpen(true);
                                     }
                                 }}
                                 sx={{
@@ -1156,9 +1142,8 @@ function App() {
           )}
         </Container>
 
-        {/* 对话框组件 (省略了内容，因为没有变动，直接复制原来的即可) */}
+        {/* 对话框组件 */}
         <Dialog open={openImport} onClose={handleCloseImport} maxWidth="sm" fullWidth>
-           {/* ... 原有代码 ... */}
            <DialogTitle>导入数据</DialogTitle>
           <DialogContent>
             <DialogContentText sx={{ mb: 2 }}>请上传您之前导出的 JSON 备份文件。</DialogContentText>
@@ -1191,7 +1176,6 @@ function App() {
         </Dialog>
 
         <Dialog open={openAddGroup} onClose={handleCloseAddGroup} maxWidth="sm" fullWidth>
-          {/* ... 原有代码 ... */}
           <DialogTitle>新增分组 <IconButton onClick={handleCloseAddGroup} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
           <DialogContent>
             <TextField autoFocus fullWidth label="分组名称" value={newGroup.name || ''} name="name" onChange={handleGroupInputChange} sx={{ mt: 2 }} />
@@ -1204,7 +1188,6 @@ function App() {
         </Dialog>
 
         <Dialog open={openAddSite} onClose={handleCloseAddSite} maxWidth="sm" fullWidth>
-          {/* ... 原有代码 ... */}
           <DialogTitle>新增站点 (分组: {currentGroup?.name}) <IconButton onClick={handleCloseAddSite} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
@@ -1257,7 +1240,6 @@ function App() {
         </Dialog>
         
         <Dialog open={editSiteOpen} onClose={() => setEditSiteOpen(false)} maxWidth="sm" fullWidth>
-          {/* ... 原有代码 ... */}
           <DialogTitle>
             编辑站点
             <IconButton onClick={() => setEditSiteOpen(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
@@ -1352,7 +1334,6 @@ function App() {
         </Dialog>
 
         <Dialog open={openConfig} onClose={handleCloseConfig} maxWidth="sm" fullWidth>
-          {/* ... 原有代码 ... */}
           <DialogTitle>网站设置 <IconButton onClick={handleCloseConfig} sx={{ position: 'absolute', right: 8, top: 8 }}><CloseIcon /></IconButton></DialogTitle>
           <DialogContent>
             <Stack spacing={2}>
