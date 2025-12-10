@@ -26,13 +26,13 @@ export default defineConfig({
         background_color: '#ffffff', // 启动画面背景色
         display: 'standalone', // 关键！设置为 standalone 才会隐藏浏览器地址栏
         icons: [
-          {
-            src: 'web-app-manifest-192x192.png', // 对应你 public 目录下的文件名
+          { 
+            src:'web-app-manifest-192x192.png', // 对应你 public 目录下的文件名
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: web-app-manifest-512x512.png', // 对应你 public 目录下的文件名
+            src: :'web-app-manifest-512x512.png', // 对应你 public 目录下的文件名
             sizes: '512x512',
             type: 'image/png'
           }
