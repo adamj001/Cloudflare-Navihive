@@ -35,7 +35,7 @@ export default defineConfig({
             src: :'web-app-manifest-512x512.png', // 对应你 public 目录下的文件名
             sizes: '512x512',
             type: 'image/png'
-          }
+          },
         ]
       }
     })
