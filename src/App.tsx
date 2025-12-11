@@ -758,9 +758,56 @@ function App() {
           }}>
           <Container maxWidth="xl" sx={{ py: 1 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h4" fontWeight="bold" sx={{ color: 'text.primary' }}>
-                  {configs['site.name']}
-                </Typography>
+                              {/* 👇👇👇 新的 Logo 区域开始 👇👇👇 */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                
+                {/* 1. SVG 图标 */}
+                <img 
+                  src="/logo.svg" 
+                  alt="WebNav Hub Logo" 
+                  style={{ 
+                    height: '56px', // 图标高度，根据实际效果微调
+                    width: 'auto',
+                    filter: darkMode ? 'drop-shadow(0 0 2px rgba(255,255,255,0.5))' : 'none' // 暗黑模式下给图标加点发光，防止看不清
+                  }} 
+                />
+
+                {/* 2. 两行文字 */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    {/* 第一行：WebNav Hub */}
+                    <Typography 
+                      variant="h5" 
+                      component="div" 
+                      sx={{ 
+                        fontWeight: 900, 
+                        lineHeight: 1, // 让行高紧凑一点
+                        letterSpacing: '-0.5px',
+                        fontSize: { xs: '1.2rem', md: '1.5rem' }, // 手机上字体小一点
+                        color: '#346392' // 默认蓝色
+                      }}
+                    >
+                        {/* 蓝色部分 */}
+                        <span style={{ color: darkMode ? '#64b5f6' : '#346392' }}>WebNav Hu</span>
+                        {/* 红色部分 'b' */}
+                        <span style={{ color: '#e57373' }}>b</span>
+                    </Typography>
+
+                    {/* 第二行：Slogan */}
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: 'text.secondary', 
+                        fontSize: { xs: '0.6rem', md: '0.75rem' }, // 字体设小
+                        fontWeight: 500,
+                        letterSpacing: '0.5px', // 字母间距稍微拉开一点，更有高级感
+                        mt: 0.5 // 和上面文字拉开一点点距离
+                      }}
+                    >
+                        Your Organized Internet Gateway
+                    </Typography>
+                </Box>
+              </Box>
+              {/* 👆👆👆 新的 Logo 区域结束 👆👆👆 */}
                 
                 {/* 管理按钮区域 */}
                 <Stack direction="row" spacing={1} alignItems="center">
