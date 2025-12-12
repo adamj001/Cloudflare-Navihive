@@ -763,7 +763,7 @@ function App() {
                 
                 {/* 1. Logo 图标 */}
                 <img 
-                  src="/logo.svg" 
+                  src="/vite.svg" 
                   alt="WebNav Hub Logo" 
                   style={{ 
                     height: '48px', // 控制图标大小
