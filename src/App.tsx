@@ -30,7 +30,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 // ✨✨✨ 修改部分：引入 Lucide 图标 ✨✨✨
-import { UserCog, LogOut } from 'lucide-react'; 
+// 在顶部 import 处，加入 Sun 和 Moon
+import { UserCog, LogOut, Sun, Moon } from 'lucide-react'; 
 
 // 引入用于拖拽手柄的图标
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
@@ -756,127 +757,138 @@ function App() {
             background: (t) => t.palette.mode === 'dark' ? 'rgba(18, 18, 18, 0.7)' : 'rgba(255, 255, 255, 0.7)',
             zIndex: 100, pt: 1,
           }}>
-          <Container maxWidth="xl" sx={{ py: 1 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                           {/* 👇👇👇 Logo 区域开始 👇👇👇 */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                
-                {/* 1. Logo 图标 */}
-                <img 
-                  src="/vite.svg" 
-                  alt="WebNav Hub Logo" 
-                  style={{ 
-                    height: '48px', // 控制图标大小
-                    width: 'auto',
-                    // 暗黑模式适配：给深色图标加白色投影，防止看不清
-                    filter: darkMode ? 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' : 'none' 
-                  }} 
-                />
+          {/* ... AppBar 其他属性保持不变 ... */}
+<Container maxWidth="xl" sx={{ py: 1 }}>
+  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    
+    {/* 👇👇👇 1. Logo 区域修改：根据模式切换 SVG 文件 👇👇👇 */}
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <img 
+        // 核心逻辑：暗黑模式用 dark.svg，亮色模式用 light.svg
+        src={darkMode ? "/logo-dark.svg" : "/logo-light.svg"} 
+        alt="WebNav Hub Logo" 
+        style={{ 
+          height: '48px', 
+          width: 'auto',
+          transition: 'all 0.3s' // 添加一点过渡动画，切换时更丝滑
+        }} 
+      />
 
-                {/* 2. 文字区域 */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-                    {/* 第一行：WebNav Hub */}
-                    <Typography 
-                      variant="h5" 
-                      component="div" 
-                      sx={{ 
-                        fontWeight: 700, // 加粗
-                        fontSize: { xs: '1.25rem', md: '1.5rem' },
-                        lineHeight: 1.1,
-                        letterSpacing: '-0.5px', // 字母稍微紧凑一点更像 Logo
-                        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-                      }}
-                    >
-                        {/* 蓝色部分 WebNav */}
-                        <span style={{ color: darkMode ? '#90caf9' : '#3E6B96' }}>WebNav</span>
-                        {/* 空格 */}
-                        &nbsp;
-                        {/* 红色部分 Hub */}
-                        <span style={{ color: '#E67365' }}>Hub</span>
-                    </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+        <Typography 
+          variant="h5" 
+          component="div" 
+          sx={{ 
+            fontWeight: 700, 
+            fontSize: { xs: '1.25rem', md: '1.5rem' },
+            lineHeight: 1.1,
+            letterSpacing: '-0.5px',
+            fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+          }}
+        >
+          <span style={{ color: darkMode ? '#90caf9' : '#3E6B96' }}>WebNav</span>
+          &nbsp;
+          <span style={{ color: '#E67365' }}>Hub</span>
+        </Typography>
 
-                    {/* 第二行：Slogan */}
-                    <Typography 
-                      variant="caption" 
-                      noWrap
-                      sx={{ 
-                        color: darkMode ? '#b0bec5' : '#5F7D95', // 灰蓝色
-                        fontSize: { xs: '0.65rem', md: '0.75rem' },
-                        fontWeight: 500,
-                        letterSpacing: '0.2px'
-                      }}
-                    >
-                        Your Organized Internet Gateway
-                    </Typography>
-                </Box>
-              </Box>
-              {/* 👆👆👆 Logo 区域结束 👆👆👆 */}
+        <Typography 
+          variant="caption" 
+          noWrap
+          sx={{ 
+            color: darkMode ? '#b0bec5' : '#5F7D95', 
+            fontSize: { xs: '0.65rem', md: '0.75rem' },
+            fontWeight: 500,
+            letterSpacing: '0.2px'
+          }}
+        >
+          Your Organized Internet Gateway
+        </Typography>
+      </Box>
+    </Box>
+    {/* 👆👆👆 Logo 区域结束 👆👆👆 */}
 
-             
-                {/* 管理按钮区域 */}
-                <Stack direction="row" spacing={1} alignItems="center">
-                  
-                  {isAuthenticated && sortMode === SortMode.None && (
-                    <>
-                      {/* 主菜单按钮 */}
-                      <IconButton onClick={handleMenuOpen} color="inherit">
-                        <MenuIcon />
-                      </IconButton>
-                    </>
-                  )}
-                  
-                  {isAuthenticated && sortMode !== SortMode.None && (
-                    <>
-                      <Button 
-                        variant="contained" 
-                        size="small" 
-                        startIcon={<SaveIcon />} 
-                        onClick={handleSaveOrder}
-                        sx={{ 
-                          bgcolor: sortMode === SortMode.GroupSort ? 'warning.main' : 'info.main',
-                          '&:hover': {
-                             bgcolor: sortMode === SortMode.GroupSort ? 'warning.dark' : 'info.dark',
-                          }
-                        }}
-                      >
-                          {sortMode === SortMode.GroupSort ? '保存分组排序' : '保存站点排序'}
-                      </Button>
-                      <Button variant="outlined" size="small" startIcon={<CancelIcon />} onClick={cancelSort}>
-                          取消
-                      </Button>
-                    </>
-                  )}
 
-                  {isAuthenticated ? (
-                    <IconButton 
-                      color="error" size="medium" onClick={handleLogout} title="退出登录"
-                      sx={{ 
-                        width: 36, height: 36, padding: 0, transition: 'all 0.3s', 
-                          boxShadow: (t) => t.shadows[6], bgcolor: 'error.main', color: 'white',
-                          '&:hover': { boxShadow: '0 0 10px rgba(255,0,0,0.8)', transform: 'scale(1.1)', bgcolor: 'error.dark' } 
-                      }}
-                    >
-                      {/* ✨✨✨ 修改部分：换成 Lucide LogOut ✨✨✨ */}
-                      <LogOut size={20} />
-                    </IconButton>
-                  ) : (
-                    <IconButton 
-                      color="primary" size="medium" onClick={() => setIsAuthRequired(true)} title="管理员登录"
-                      sx={{ 
-                          transition: 'all 0.3s', boxShadow: (t) => t.shadows[6], bgcolor: 'primary.main', color: 'black',
-                        width: 36, height: 36, padding: 0,
-                          '&:hover': { boxShadow: (t) => `0 0 10px ${t.palette.primary.main}80`, transform: 'scale(1.1)', bgcolor: 'primary.dark' } 
-                      }}
-                    >
-                       {/* ✨✨✨ 修改部分：换成 Lucide UserCog ✨✨✨ */}
-                       <UserCog size={20} />
-                    </IconButton>
-                  )}
-                  <ThemeToggle darkMode={darkMode} onToggle={toggleTheme} />
-                </Stack>
-              </Box>
-          </Container>
-          
+    {/* 👇👇👇 2. 右侧按钮区域修改：使用 Lucide Sun/Moon 图标 👇👇👇 */}
+    <Stack direction="row" spacing={1} alignItems="center">
+      
+      {isAuthenticated && sortMode === SortMode.None && (
+        <IconButton onClick={handleMenuOpen} color="inherit">
+          <MenuIcon />
+        </IconButton>
+      )}
+      
+      {isAuthenticated && sortMode !== SortMode.None && (
+        <>
+          <Button 
+            variant="contained" 
+            size="small" 
+            startIcon={<SaveIcon />} 
+            onClick={handleSaveOrder}
+            sx={{ 
+              bgcolor: sortMode === SortMode.GroupSort ? 'warning.main' : 'info.main',
+              '&:hover': {
+                  bgcolor: sortMode === SortMode.GroupSort ? 'warning.dark' : 'info.dark',
+              }
+            }}
+          >
+              {sortMode === SortMode.GroupSort ? '保存分组排序' : '保存站点排序'}
+          </Button>
+          <Button variant="outlined" size="small" startIcon={<CancelIcon />} onClick={cancelSort}>
+              取消
+          </Button>
+        </>
+      )}
+
+      {/* 管理员/退出按钮 (使用 Lucide 图标) */}
+      {isAuthenticated ? (
+        <IconButton 
+          color="error" size="medium" onClick={handleLogout} title="退出登录"
+          sx={{ 
+            width: 36, height: 36, padding: 0, transition: 'all 0.3s', 
+            boxShadow: (t) => t.shadows[6], bgcolor: 'error.main', color: 'white',
+            '&:hover': { boxShadow: '0 0 10px rgba(255,0,0,0.8)', transform: 'scale(1.1)', bgcolor: 'error.dark' } 
+          }}
+        >
+          <LogOut size={20} />
+        </IconButton>
+      ) : (
+        <IconButton 
+          color="primary" size="medium" onClick={() => setIsAuthRequired(true)} title="管理员登录"
+          sx={{ 
+            transition: 'all 0.3s', boxShadow: (t) => t.shadows[6], bgcolor: 'primary.main', color: 'black',
+            width: 36, height: 36, padding: 0,
+            '&:hover': { boxShadow: (t) => `0 0 10px ${t.palette.primary.main}80`, transform: 'scale(1.1)', bgcolor: 'primary.dark' } 
+          }}
+        >
+            <UserCog size={20} />
+        </IconButton>
+      )}
+
+      {/* 💡 主题切换按钮 (替换了原来的 <ThemeToggle />) */}
+      <IconButton 
+        onClick={toggleTheme} 
+        color="inherit"
+        title={darkMode ? "切换到亮色模式" : "切换到暗黑模式"}
+        sx={{ 
+          width: 40, 
+          height: 40,
+          transition: 'all 0.3s',
+          // 太阳显示橙色，月亮显示灰蓝色
+          color: darkMode ? '#fb8c00' : '#64748b', 
+          '&:hover': { 
+            bgcolor: darkMode ? 'rgba(251, 140, 0, 0.1)' : 'rgba(100, 116, 139, 0.1)', 
+            transform: 'rotate(15deg)' // 悬停时稍微旋转一下，很可爱的效果
+          }
+        }}
+      >
+        {/* 逻辑：暗黑模式显示太阳(代表点击变亮)，亮色模式显示月亮(代表点击变暗) */}
+        {darkMode ? <Sun size={24} /> : <Moon size={24} />}
+      </IconButton>
+
+    </Stack>
+  </Box>
+</Container>
+        
          {/* 菜单 Tabs */}
 <Box 
     sx={{ 
