@@ -29,9 +29,9 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+// ✨✨✨ 修改部分：引入 Lucide 图标 ✨✨✨
+import { UserCog, LogOut } from 'lucide-react'; 
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUserCog, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 // 引入用于拖拽手柄的图标
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 
@@ -856,7 +856,8 @@ function App() {
                           '&:hover': { boxShadow: '0 0 10px rgba(255,0,0,0.8)', transform: 'scale(1.1)', bgcolor: 'error.dark' } 
                       }}
                     >
-                      <FontAwesomeIcon icon={faSignOutAlt} style={{ fontSize: '1.2rem' }} />
+                      {/* ✨✨✨ 修改部分：换成 Lucide LogOut ✨✨✨ */}
+                      <LogOut size={20} />
                     </IconButton>
                   ) : (
                     <IconButton 
@@ -867,7 +868,8 @@ function App() {
                           '&:hover': { boxShadow: (t) => `0 0 10px ${t.palette.primary.main}80`, transform: 'scale(1.1)', bgcolor: 'primary.dark' } 
                       }}
                     >
-                       <FontAwesomeIcon icon={faUserCog} style={{ fontSize: '1.2rem' }} />
+                       {/* ✨✨✨ 修改部分：换成 Lucide UserCog ✨✨✨ */}
+                       <UserCog size={20} />
                     </IconButton>
                   )}
                   <ThemeToggle darkMode={darkMode} onToggle={toggleTheme} />
