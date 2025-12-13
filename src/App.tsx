@@ -3,7 +3,7 @@ import { NavigationClient } from './API/client';
 import { MockNavigationClient } from './API/mock';
 import { Site, Group } from './API/http';
 import { GroupWithSites } from './types';
-import ThemeToggle from './components/ThemeToggle';
+// import ThemeToggle from './components/ThemeToggle'; // 不再需要
 import LoginForm from './components/LoginForm';
 import SearchBox from './components/SearchBox';
 import { sanitizeCSS, isSecureUrl, extractDomain } from './utils/url';
@@ -30,7 +30,6 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 // ✨✨✨ 修改部分：引入 Lucide 图标 ✨✨✨
-// 在顶部 import 处，加入 Sun 和 Moon
 import { UserCog, LogOut, Sun, Moon } from 'lucide-react'; 
 
 // 引入用于拖拽手柄的图标
@@ -266,11 +265,9 @@ function App() {
     })
   );
   
-  // ▼▼▼▼▼▼▼▼▼▼ 核心修复：将 useMemo 移动到这里，必须在任何 return 之前！ ▼▼▼▼▼▼▼▼▼▼
-  // 准备用于 SortableContext 的 items id 数组
+  // 核心修复：将 useMemo 移动到这里，必须在任何 return 之前！
   const groupIds = useMemo(() => groups.map(g => g.id!), [groups]);
   const siteIds = useMemo(() => currentGroup?.sites.map(s => s.id!) || [], [currentGroup]);
-  // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
     setMenuAnchorEl(event.currentTarget);
@@ -355,8 +352,6 @@ function App() {
     try {
       setLoginLoading(true);
       setLoginError(null);
-      // 👇👇👇 核心修改在这里：把原来的 true 改成了 false
-      // true 代表“记住我”(LocalStorage)，false 代表“仅本次会话”(SessionStorage)
       const loginResponse = await api.login(username, password, false); 
       
       if (loginResponse?.success) {
@@ -710,7 +705,6 @@ function App() {
     }
   };
 
-  // ▼▼▼▼▼▼▼▼▼▼ 这个 Early Return 必须在所有 Hooks 定义之后！ ▼▼▼▼▼▼▼▼▼▼
   if (isAuthChecking) {
     return (
       <ThemeProvider theme={theme}>
@@ -721,7 +715,6 @@ function App() {
       </ThemeProvider>
     );
   }
-  // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
   return (
     <ThemeProvider theme={theme}>
@@ -758,154 +751,136 @@ function App() {
             background: (t) => t.palette.mode === 'dark' ? 'rgba(18, 18, 18, 0.7)' : 'rgba(255, 255, 255, 0.7)',
             zIndex: 100, pt: 1,
           }}>
-          {/* ... AppBar 其他属性保持不变 ... */}
-<Container maxWidth="xl" sx={{ py: 1 }}>
-  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-    
-    {/* 👇👇👇 1. Logo 区域修改：根据模式切换 SVG 文件 👇👇👇 */}
-    {/* 1. Logo 区域优化版：双图同显，CSS控制显隐 */}
-<Box sx={{ position: 'relative', height: '48px', width: 'auto', display: 'flex', alignItems: 'center' }}>
-       {/* 暗黑模式 Logo */}
-  <img 
-    src="/logo-dark.svg" 
-    alt="WebNav Hub Logo Dark" 
-    loading="eager" // 强制立即加载
-    style={{ 
-      height: '48px', 
-      width: 'auto',
-      // 核心逻辑：如果是暗黑模式就显示(block)，否则隐藏(none)
-      display: darkMode ? 'block' : 'none', 
-      transition: 'opacity 0.2s'
-    }} 
-  />
-    {/* 亮色模式 Logo */}
-  <img 
-    src="/logo-light.svg" 
-    alt="WebNav Hub Logo Light" 
-    loading="eager" // 强制立即加载
-    style={{ 
-      height: '48px', 
-      width: 'auto',
-      // 核心逻辑：如果是暗黑模式就隐藏(none)，否则显示(block)
-      display: darkMode ? 'none' : 'block',
-      transition: 'opacity 0.2s'
-    }} 
-  />
-      <Box sx={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-        <Typography 
-          variant="h5" 
-          component="div" 
-          sx={{ 
-            fontWeight: 700, 
-            fontSize: { xs: '1.25rem', md: '1.5rem' },
-            lineHeight: 1.1,
-            letterSpacing: '-0.5px',
-            fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-          }}
-        >
-          <span style={{ color: darkMode ? '#90caf9' : '#3E6B96' }}>WebNav</span>
-          &nbsp;
-          <span style={{ color: '#E67365' }}>Hub</span>
-        </Typography>
+          <Container maxWidth="xl" sx={{ py: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                           {/* 👇👇👇 Logo 区域开始 👇👇👇 */}
+              <Box sx={{ position: 'relative', height: '48px', width: 'auto', display: 'flex', alignItems: 'center' }}>
+                  <img 
+                    src="/logo-dark.svg" 
+                    alt="WebNav Hub Logo Dark" 
+                    loading="eager" 
+                    style={{ height: '48px', width: 'auto', display: darkMode ? 'block' : 'none', transition: 'opacity 0.2s' }} 
+                  />
+                  <img 
+                    src="/logo-light.svg" 
+                    alt="WebNav Hub Logo Light" 
+                    loading="eager"
+                    style={{ height: '48px', width: 'auto', display: darkMode ? 'none' : 'block', transition: 'opacity 0.2s' }} 
+                  />
 
-        <Typography 
-          variant="caption" 
-          noWrap
-          sx={{ 
-            color: darkMode ? '#b0bec5' : '#5F7D95', 
-            fontSize: { xs: '0.65rem', md: '0.75rem' },
-            fontWeight: 500,
-            letterSpacing: '0.2px'
-          }}
-        >
-          Your Organized Internet Gateway
-        </Typography>
-      </Box>
-    </Box>
-    {/* 👆👆👆 Logo 区域结束 👆👆👆 */}
+                {/* 文字区域 */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', lineHeight: 1, ml: 1.5 }}>
+                    <Typography 
+                      variant="h5" 
+                      component="div" 
+                      sx={{ 
+                        fontWeight: 700, 
+                        fontSize: { xs: '1.25rem', md: '1.5rem' },
+                        lineHeight: 1.1,
+                        letterSpacing: '-0.5px',
+                        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+                      }}
+                    >
+                        <span style={{ color: darkMode ? '#90caf9' : '#3E6B96' }}>WebNav</span>
+                        &nbsp;
+                        <span style={{ color: '#E67365' }}>Hub</span>
+                    </Typography>
 
+                    <Typography 
+                      variant="caption" 
+                      noWrap
+                      sx={{ 
+                        color: darkMode ? '#b0bec5' : '#5F7D95',
+                        fontSize: { xs: '0.65rem', md: '0.75rem' },
+                        fontWeight: 500,
+                        letterSpacing: '0.2px'
+                      }}
+                    >
+                        Your Organized Internet Gateway
+                    </Typography>
+                </Box>
+              </Box>
+              {/* 👆👆👆 Logo 区域结束 👆👆👆 */}
 
-    {/* 👇👇👇 2. 右侧按钮区域修改：使用 Lucide Sun/Moon 图标 👇👇👇 */}
-    <Stack direction="row" spacing={1} alignItems="center">
-      
-      {isAuthenticated && sortMode === SortMode.None && (
-        <IconButton onClick={handleMenuOpen} color="inherit">
-          <MenuIcon />
-        </IconButton>
-      )}
-      
-      {isAuthenticated && sortMode !== SortMode.None && (
-        <>
-          <Button 
-            variant="contained" 
-            size="small" 
-            startIcon={<SaveIcon />} 
-            onClick={handleSaveOrder}
-            sx={{ 
-              bgcolor: sortMode === SortMode.GroupSort ? 'warning.main' : 'info.main',
-              '&:hover': {
-                  bgcolor: sortMode === SortMode.GroupSort ? 'warning.dark' : 'info.dark',
-              }
-            }}
-          >
-              {sortMode === SortMode.GroupSort ? '保存分组排序' : '保存站点排序'}
-          </Button>
-          <Button variant="outlined" size="small" startIcon={<CancelIcon />} onClick={cancelSort}>
-              取消
-          </Button>
-        </>
-      )}
+             
+                {/* 管理按钮区域 */}
+                <Stack direction="row" spacing={1} alignItems="center">
+                  
+                  {isAuthenticated && sortMode === SortMode.None && (
+                    <>
+                      <IconButton onClick={handleMenuOpen} color="inherit">
+                        <MenuIcon />
+                      </IconButton>
+                    </>
+                  )}
+                  
+                  {isAuthenticated && sortMode !== SortMode.None && (
+                    <>
+                      <Button 
+                        variant="contained" 
+                        size="small" 
+                        startIcon={<SaveIcon />} 
+                        onClick={handleSaveOrder}
+                        sx={{ 
+                          bgcolor: sortMode === SortMode.GroupSort ? 'warning.main' : 'info.main',
+                          '&:hover': {
+                             bgcolor: sortMode === SortMode.GroupSort ? 'warning.dark' : 'info.dark',
+                          }
+                        }}
+                      >
+                          {sortMode === SortMode.GroupSort ? '保存分组排序' : '保存站点排序'}
+                      </Button>
+                      <Button variant="outlined" size="small" startIcon={<CancelIcon />} onClick={cancelSort}>
+                          取消
+                      </Button>
+                    </>
+                  )}
 
-      {/* 管理员/退出按钮 (使用 Lucide 图标) */}
-      {isAuthenticated ? (
-        <IconButton 
-          color="error" size="medium" onClick={handleLogout} title="退出登录"
-          sx={{ 
-            width: 36, height: 36, padding: 0, transition: 'all 0.3s', 
-            boxShadow: (t) => t.shadows[6], bgcolor: 'error.main', color: 'white',
-            '&:hover': { boxShadow: '0 0 10px rgba(255,0,0,0.8)', transform: 'scale(1.1)', bgcolor: 'error.dark' } 
-          }}
-        >
-          <LogOut size={20} />
-        </IconButton>
-      ) : (
-        <IconButton 
-          color="primary" size="medium" onClick={() => setIsAuthRequired(true)} title="管理员登录"
-          sx={{ 
-            transition: 'all 0.3s', boxShadow: (t) => t.shadows[6], bgcolor: 'primary.main', color: 'black',
-            width: 36, height: 36, padding: 0,
-            '&:hover': { boxShadow: (t) => `0 0 10px ${t.palette.primary.main}80`, transform: 'scale(1.1)', bgcolor: 'primary.dark' } 
-          }}
-        >
-            <UserCog size={20} />
-        </IconButton>
-      )}
-
-      {/* 💡 主题切换按钮 (替换了原来的 <ThemeToggle />) */}
-      <IconButton 
-        onClick={toggleTheme} 
-        color="inherit"
-        title={darkMode ? "切换到亮色模式" : "切换到暗黑模式"}
-        sx={{ 
-          width: 40, 
-          height: 40,
-          transition: 'all 0.3s',
-          // 太阳显示橙色，月亮显示灰蓝色
-          color: darkMode ? '#fb8c00' : '#64748b', 
-          '&:hover': { 
-            bgcolor: darkMode ? 'rgba(251, 140, 0, 0.1)' : 'rgba(100, 116, 139, 0.1)', 
-            transform: 'rotate(15deg)' // 悬停时稍微旋转一下，很可爱的效果
-          }
-        }}
-      >
-        {/* 逻辑：暗黑模式显示太阳(代表点击变亮)，亮色模式显示月亮(代表点击变暗) */}
-        {darkMode ? <Sun size={24} /> : <Moon size={24} />}
-      </IconButton>
-
-    </Stack>
-  </Box>
-</Container>
-        
+                  {isAuthenticated ? (
+                    <IconButton 
+                      color="error" size="medium" onClick={handleLogout} title="退出登录"
+                      sx={{ 
+                        width: 36, height: 36, padding: 0, transition: 'all 0.3s', 
+                          boxShadow: (t) => t.shadows[6], bgcolor: 'error.main', color: 'white',
+                          '&:hover': { boxShadow: '0 0 10px rgba(255,0,0,0.8)', transform: 'scale(1.1)', bgcolor: 'error.dark' } 
+                      }}
+                    >
+                      <LogOut size={20} />
+                    </IconButton>
+                  ) : (
+                    <IconButton 
+                      color="primary" size="medium" onClick={() => setIsAuthRequired(true)} title="管理员登录"
+                      sx={{ 
+                          transition: 'all 0.3s', boxShadow: (t) => t.shadows[6], bgcolor: 'primary.main', color: 'black',
+                        width: 36, height: 36, padding: 0,
+                          '&:hover': { boxShadow: (t) => `0 0 10px ${t.palette.primary.main}80`, transform: 'scale(1.1)', bgcolor: 'primary.dark' } 
+                      }}
+                    >
+                       <UserCog size={20} />
+                    </IconButton>
+                  )}
+                  
+                   <IconButton 
+                      onClick={toggleTheme} 
+                      color="inherit"
+                      title={darkMode ? "切换到亮色模式" : "切换到暗黑模式"}
+                      sx={{ 
+                        width: 40, 
+                        height: 40,
+                        transition: 'all 0.3s',
+                        color: darkMode ? '#fb8c00' : '#64748b', 
+                        '&:hover': { 
+                          bgcolor: darkMode ? 'rgba(251, 140, 0, 0.1)' : 'rgba(100, 116, 139, 0.1)', 
+                          transform: 'rotate(15deg)' 
+                        }
+                      }}
+                    >
+                      {darkMode ? <Sun size={24} /> : <Moon size={24} />}
+                    </IconButton>
+                </Stack>
+              </Box>
+          </Container>
+          
          {/* 菜单 Tabs */}
 <Box 
     sx={{ 
@@ -935,14 +910,12 @@ function App() {
            
            {/* ▼▼▼▼▼▼ 核心修改：排序模式下使用普通 Box，非排序模式下使用 Tabs ▼▼▼▼▼▼ */}
            {sortMode === SortMode.GroupSort ? (
-             // 1. 排序模式：使用普通的 Flex 容器，完全避开 MUI Tabs 的干扰
              <Box 
                sx={{ 
                  display: 'flex', 
                  gap: 1, 
                  overflowX: 'auto', 
                  py: 0.5,
-                 // 隐藏滚动条
                  scrollbarWidth: 'none', 
                  '&::-webkit-scrollbar': { display: 'none' } 
                }}
@@ -952,13 +925,11 @@ function App() {
                     key={g.id} 
                     label={g.name} 
                     value={g.id} 
-                    // 在这里给 SortableTab 传递额外的样式，因为它脱离了 Tabs 容器，需要手动撑开高度
                     sx={{ minHeight: '48px', bgcolor: 'rgba(0,0,0,0.05)', borderRadius: 2, border: '1px solid transparent' }} 
                   />
                 ))}
              </Box>
            ) : (
-             // 2. 正常模式：使用标准的 MUI Tabs 组件
              <Tabs
                 value={selectedTab || false}
                 onChange={(_, v) => setSelectedTab(v as number)}
@@ -980,7 +951,6 @@ function App() {
                     <Tab key={g.id} label={g.name} value={g.id} />
                 ))}
 
-                {/* 添加分组按钮 (仅非排序模式显示) */}
                 {isAuthenticated && (
                   <Tab
                     icon={<AddIcon />}
@@ -991,7 +961,6 @@ function App() {
                 )}
               </Tabs>
            )}
-           {/* ▲▲▲▲▲▲ 修改结束 ▲▲▲▲▲▲ */}
 
         </SortableContext>
     </DndContext>
@@ -1030,19 +999,18 @@ function App() {
             >
               <SortableContext items={siteIds} strategy={rectSortingStrategy}>
                   <Box sx={{ 
-  display: 'grid', 
-  gridTemplateColumns: { 
-    xs: 'repeat(auto-fill, minmax(140px, 1fr))', // 手机端保持自动适应
-    // 👇👇👇 核心修改：读取配置中的列数，如果没有则默认为 6
-    md: `repeat(${Number(configs['site.desktopColumns'] || 6)}, 1fr)` 
-  },
-  gap: 3.5, 
-  pb: 10,
-  border: sortMode === SortMode.SiteSort ? (t) => `2px dashed ${t.palette.info.main}` : 'none',
-  borderRadius: 4,
-  p: sortMode === SortMode.SiteSort ? 2 : 0,
-  transition: 'all 0.3s'
-}}>
+                    display: 'grid', 
+                    gridTemplateColumns: { 
+                        xs: 'repeat(auto-fill, minmax(140px, 1fr))', 
+                        md: `repeat(${Number(configs['site.desktopColumns'] || 6)}, 1fr)` 
+                    },
+                    gap: 3.5, 
+                    pb: 10,
+                    border: sortMode === SortMode.SiteSort ? (t) => `2px dashed ${t.palette.info.main}` : 'none',
+                    borderRadius: 4,
+                    p: sortMode === SortMode.SiteSort ? 2 : 0,
+                    transition: 'all 0.3s'
+                  }}>
                     {currentGroup?.sites?.map((site: Site) => {
                         const CardContent = (
                             <Paper
@@ -1104,7 +1072,7 @@ function App() {
                                     <img
                                     src={site.icon || `https://www.google.com/s2/favicons?domain=${extractDomain(site.url)}&sz=256`}
                                     alt={site.name}
-                                     loading="lazy"  // 👈 加上这一行！神器
+                                     loading="lazy"
                                     style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}
                                     onError={(e) => {
                                         const isTextIcon = site.icon && site.icon.length > 0 && !site.icon.startsWith('http');
@@ -1428,45 +1396,34 @@ function App() {
               <TextField label="网站标题" value={tempConfigs['site.title']} onChange={handleConfigInputChange} name="site.title" fullWidth />
               <TextField label="网站名称" value={tempConfigs['site.name']} onChange={handleConfigInputChange} name="site.name" fullWidth />
               <TextField label="背景图片URL" value={tempConfigs['site.backgroundImage']} onChange={handleConfigInputChange} name="site.backgroundImage" fullWidth />
-              <Slider value={Number(tempConfigs['site.backgroundOpacity'])} onChange={(_, v) => setTempConfigs({...tempConfigs, 'site.backgroundOpacity': String(v)})} min={0} max={1} step={0.05} />
-              <Dialog open={openConfig} onClose={handleCloseConfig} maxWidth="sm" fullWidth>
-  <DialogTitle>网站设置 ...（省略）</DialogTitle>
-  <DialogContent>
-    <Stack spacing={2}>
-      <TextField label="网站标题" value={tempConfigs['site.title']} onChange={handleConfigInputChange} name="site.title" fullWidth />
-      <TextField label="网站名称" value={tempConfigs['site.name']} onChange={handleConfigInputChange} name="site.name" fullWidth />
-      <TextField label="背景图片URL" value={tempConfigs['site.backgroundImage']} onChange={handleConfigInputChange} name="site.backgroundImage" fullWidth />
-   
-      {/* 原有的透明度设置 */}
-      <Box>
-        <Typography variant="caption" color="text.secondary">背景遮罩透明度</Typography>
-        <Slider 
-          value={Number(tempConfigs['site.backgroundOpacity'])} 
-          onChange={(_, v) => setTempConfigs({...tempConfigs, 'site.backgroundOpacity': String(v)})} 
-          min={0} max={1} step={0.05} 
-        />
-      </Box>
+              
+              <Box>
+                <Typography variant="caption" color="text.secondary">背景遮罩透明度</Typography>
+                <Slider 
+                    value={Number(tempConfigs['site.backgroundOpacity'])} 
+                    onChange={(_, v) => setTempConfigs({...tempConfigs, 'site.backgroundOpacity': String(v)})} 
+                    min={0} max={1} step={0.05} 
+                />
+              </Box>
 
-      {/* 👇👇👇 新增：每行卡片数量设置 👇👇👇 */}
-      <Box>
-        <Typography variant="caption" color="text.secondary">
-          桌面端每行显示数量: {tempConfigs['site.desktopColumns'] || 6}
-        </Typography>
-        <Slider 
-          value={Number(tempConfigs['site.desktopColumns'] || 6)} 
-          onChange={(_, v) => setTempConfigs({...tempConfigs, 'site.desktopColumns': String(v)})} 
-          min={3}  // 最少3列
-          max={10} // 最多10列（你可以自己改这个上限）
-          step={1} 
-          marks
-          valueLabelDisplay="auto"
-        />
-      </Box>
-      {/* 👆👆👆 新增结束 👆👆👆 */}
+               <Box>
+                <Typography variant="caption" color="text.secondary">
+                桌面端每行显示数量: {tempConfigs['site.desktopColumns'] || 6}
+                </Typography>
+                <Slider 
+                value={Number(tempConfigs['site.desktopColumns'] || 6)} 
+                onChange={(_, v) => setTempConfigs({...tempConfigs, 'site.desktopColumns': String(v)})} 
+                min={3}  // 最少3列
+                max={10} // 最多10列（你可以自己改这个上限）
+                step={1} 
+                marks
+                valueLabelDisplay="auto"
+                />
+            </Box>
 
-      <TextField label="自定义CSS" value={tempConfigs['site.customCss']} onChange={handleConfigInputChange} name="site.customCss" multiline rows={6} fullWidth />
-    </Stack>
-  </DialogContent>       
+              <TextField label="自定义CSS" value={tempConfigs['site.customCss']} onChange={handleConfigInputChange} name="site.customCss" multiline rows={6} fullWidth />
+            </Stack>
+          </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseConfig}>取消</Button>
             <Button variant="contained" onClick={handleSaveConfig}>保存</Button>
