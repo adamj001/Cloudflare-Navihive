@@ -6,6 +6,7 @@ import { GroupWithSites } from './types';
 // import ThemeToggle from './components/ThemeToggle'; // 不再需要
 import LoginForm from './components/LoginForm';
 import SearchBox from './components/SearchBox';
+import WeatherWidget from './components/WeatherWidget';
 import { sanitizeCSS, isSecureUrl, extractDomain } from './utils/url';
 import './App.css';
 
@@ -805,7 +806,8 @@ function App() {
              
                 {/* 管理按钮区域 */}
                 <Stack direction="row" spacing={1} alignItems="center">
-                  
+                    {/* 👇👇👇 新增的天气组件放在最左边 👇👇👇 */}
+                  <WeatherWidget />
                   {isAuthenticated && sortMode === SortMode.None && (
                     <>
                       <IconButton onClick={handleMenuOpen} color="inherit">
