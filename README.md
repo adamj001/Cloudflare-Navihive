@@ -3,7 +3,6 @@
 
 # WebNav Hub - 您的现代化个人导航站
 
-![Project Banner](public/vite.svg)
 **WebNav Hub** 是一个基于 React + TypeScript + Vite 构建的轻量级、高性能个人导航仪表盘。它支持 PWA 安装，拥有丝滑的拖拽排序体验、漂亮的磨砂玻璃 UI 以及自动化的天气组件。
 
 ## ✨ 核心特性
