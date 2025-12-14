@@ -1,31 +1,21 @@
-// src/components/WeatherWidget.tsx
 import { useState, useEffect } from 'react';
-import { Box, Typography, CircularProgress, Tooltip, IconButton } from '@mui/material';
+import { Box, Typography, CircularProgress, Tooltip } from '@mui/material';
 import { 
   Sun, Cloud, CloudRain, CloudSnow, CloudLightning, 
-  CloudDrizzle, CloudFog, Wind, Snowflake 
+  CloudDrizzle, CloudFog, Snowflake 
 } from 'lucide-react';
 
-// WMO 天气代码映射到 Lucide 图标
+// WMO 天气代码映射到 Lucide 图标 (保持不变)
 const getWeatherIcon = (code: number, isDay: number) => {
-  // 0: 晴天
   if (code === 0) return isDay ? <Sun className="weather-icon-anim" /> : <Sun className="weather-icon-anim" style={{ opacity: 0.8 }} />;
-  // 1-3: 多云
   if (code >= 1 && code <= 3) return <Cloud className="weather-icon-anim" />;
-  // 45, 48: 雾
   if (code === 45 || code === 48) return <CloudFog className="weather-icon-anim" />;
-  // 51-67:不仅是雨，还有冻雨等
   if (code >= 51 && code <= 67) return <CloudDrizzle className="weather-icon-anim" />;
-  // 71-77: 雪
   if (code >= 71 && code <= 77) return <CloudSnow className="weather-icon-anim" />;
-  // 80-82: 阵雨
   if (code >= 80 && code <= 82) return <CloudRain className="weather-icon-anim" />;
-  // 85-86: 阵雪
   if (code >= 85 && code <= 86) return <Snowflake className="weather-icon-anim" />;
-  // 95-99: 雷雨
   if (code >= 95 && code <= 99) return <CloudLightning className="weather-icon-anim" />;
-  
-  return <Sun />; // 默认
+  return <Sun />;
 };
 
 const getWeatherDesc = (code: number) => {
@@ -40,6 +30,7 @@ const getWeatherDesc = (code: number) => {
 
 export default function WeatherWidget() {
   const [weather, setWeather] = useState<any>(null);
+  const [locationName, setLocationName] = useState<string>(''); // ✨ 新增：存储城市名称
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -54,12 +45,26 @@ export default function WeatherWidget() {
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          // 使用 Open-Meteo 免费 API (无需 Key)
-          const res = await fetch(
+
+          // 1. 获取天气数据 (Open-Meteo)
+          const weatherRes = await fetch(
             `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`
           );
-          const data = await res.json();
-          setWeather(data.current_weather);
+          const weatherData = await weatherRes.json();
+
+          // 2. ✨ 新增：获取城市名称 (BigDataCloud Free API, 无需Key)
+          // localityLanguage=zh 强制返回中文
+          const cityRes = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=zh`
+          );
+          const cityData = await cityRes.json();
+          
+          // 优先取 locality(区/县), 取不到则取 city(市), 再没有就显示"本地"
+          const city = cityData.locality || cityData.city || cityData.principalSubdivision || '本地';
+
+          setWeather(weatherData.current_weather);
+          setLocationName(city); // 保存城市名
+
         } catch (e) {
           console.error(e);
           setError(true);
@@ -68,13 +73,13 @@ export default function WeatherWidget() {
         }
       },
       () => {
-        setError(true); // 用户拒绝定位
+        setError(true);
         setLoading(false);
       }
     );
   }, []);
 
-  if (error) return null; // 如果获取失败，直接不显示，不影响美观
+  if (error) return null;
 
   return (
     <Box
@@ -85,12 +90,12 @@ export default function WeatherWidget() {
         px: 1.5,
         py: 0.5,
         borderRadius: '20px',
-        // 磨砂玻璃效果，适配深色/浅色模式
         bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
         backdropFilter: 'blur(8px)',
         border: '1px solid',
         borderColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
         transition: 'all 0.3s',
+        cursor: 'default', // 鼠标放上去显示默认指针
         '&:hover': {
           bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
         }
@@ -100,11 +105,12 @@ export default function WeatherWidget() {
         <CircularProgress size={16} thickness={5} />
       ) : (
         <>
-          <Tooltip title={`${getWeatherDesc(weather.weathercode)} - 风速 ${weather.windspeed} km/h`}>
+          {/* ✨ 修改：Tooltip 内容增加了地点名称 */}
+          <Tooltip title={`${locationName}：${getWeatherDesc(weather.weathercode)}，风速 ${weather.windspeed} km/h`}>
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
-              color: (theme) => theme.palette.mode === 'dark' ? '#fb8c00' : '#f57c00', // 图标用暖橙色
+              color: (theme) => theme.palette.mode === 'dark' ? '#fb8c00' : '#f57c00',
               '& svg': { width: 20, height: 20 }
             }}>
               {getWeatherIcon(weather.weathercode, weather.is_day)}
@@ -117,7 +123,6 @@ export default function WeatherWidget() {
         </>
       )}
       
-      {/* 添加一个简单的呼吸动画样式 */}
       <style>{`
         @keyframes float {
           0% { transform: translateY(0px); }
