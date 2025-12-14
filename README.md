@@ -3,6 +3,12 @@
 
 # WebNav Hub - 您的现代化个人导航站
 
+![NaviHive 导航站](https://img.shields.io/badge/NaviHive-导航站-blue)
+![React](https://img.shields.io/badge/React-19.0.0-61dafb)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6)
+![Material UI](https://img.shields.io/badge/Material_UI-7.0-0081cb)
+![Cloudflare](https://img.shields.io/badge/Cloudflare-Workers-f38020)
+![License](https://img.shields.io/badge/License-MIT-green)
 **WebNav Hub** 是一个基于 React + TypeScript + Vite 构建的轻量级、高性能个人导航仪表盘。它支持 PWA 安装，拥有丝滑的拖拽排序体验、漂亮的磨砂玻璃 UI 以及自动化的天气组件。
 
 ## ✨ 核心特性
@@ -41,31 +47,32 @@
 git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
 cd your-repo-name
 
+2. 安装依赖
+本项目使用 pnpm 进行包管理：
+# 如果没有安装 pnpm，请先运行：
+npm install -g pnpm
+pnpm install
 
-# NaviHive - 现代化个人导航站
+3. 启动开发服务器
+pnpm dev
+启动后访问 http://localhost:5173 即可预览。
+📦 构建与部署
+构建生产版本
+pnpm run build
+构建产物将输出到 dist 目录。
+部署到 Cloudflare Pages (推荐)
+本项目已针对 Cloudflare Pages 进行了优化。
+1. 连接 GitHub: 在 Cloudflare Dashboard 中创建一个新 Pages 项目，连接你的 GitHub 仓库。
+2. 构建配置:
+• 框架预设: Vite
+• 构建命令 (Build command): pnpm run build
+• 构建输出目录 (Build output directory): dist
+3. 环境变量 (可选):
+• 如果使用真实后端 API，请在 Settings 中配置 VITE_USE_REAL_API=true。
+注意: 不需要并在部署命令中填写 npm install，Cloudflare 会自动根据 pnpm-lock.yaml 安装依赖。
 
-![NaviHive 导航站](https://img.shields.io/badge/NaviHive-导航站-blue)
-![React](https://img.shields.io/badge/React-19.0.0-61dafb)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6)
-![Material UI](https://img.shields.io/badge/Material_UI-7.0-0081cb)
-![Cloudflare](https://img.shields.io/badge/Cloudflare-Workers-f38020)
-![License](https://img.shields.io/badge/License-MIT-green)
-
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/adamj001/cloudflare-navi)
-
-**一个优雅、现代化的网站导航管理系统**
-基于 Cloudflare Workers 构建 • 零成本部署 • 全球 CDN 加速 • 企业级安全
-
-[📖 完整文档](https://zqq-nuli.github.io/Cloudflare-Navihive/) • [🎮 在线演示](https://navihive.chatbot.cab/) • [🚀 快速开始](https://zqq-nuli.github.io/Cloudflare-Navihive/deployment/) • [💬 问题反馈](https://github.com/zqq-nuli/Cloudflare-Navihive/issues)
-
-</div>
-
-> 部署过程中遇到问题，暂时可参阅 V1.1.0版本[部署教程](https://github.com/zqq-nuli/Cloudflare-Navihive/tree/v1.1.0)暂时我可能没有那么多时间来修正文档的问题，实在抱歉。databse
-
-## 🎯 快速开始,
-0.0 Create D1 Database Named navigation, then goto control panel to run the following initializing code:
-
--- 创建分组表
+s设置D1数据库：
+- 创建分组表
 
 CREATE TABLE IF NOT EXISTS groups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -110,6 +117,45 @@ INSERT INTO configs (key, value) VALUES ('DB_INITIALIZED', 'true');
 CREATE INDEX IF NOT EXISTS idx_groups_is_public ON groups(is_public);
 CREATE INDEX IF NOT EXISTS idx_sites_is_public ON sites(is_public);
 
+
+
+
+📂 项目结构
+src/
+├── API/              # API 接口定义 (支持 Mock 和 真实 HTTP)
+├── components/       # UI 组件
+│   ├── LoginForm.tsx    # 登录弹窗
+│   ├── SearchBox.tsx    # 搜索框
+│   ├── ThemeToggle.tsx  # (旧)主题切换
+│   └── WeatherWidget.tsx # ✨ 天气组件
+├── utils/            # 工具函数 (URL处理等)
+├── App.tsx           # 主应用逻辑 (包含拖拽、布局、弹窗逻辑)
+└── main.tsx          # 入口文件
+public/               # 静态资源 (Logo, PWA icons)
+
+📝 待办事项 / 计划中
+• [ ] 添加搜索引擎切换功能
+• [ ] 增加更多自定义主题色
+• [ ] 后端 API 对接 (目前支持 Mock 数据)
+📄 开源协议
+MIT License
+
+
+0.0 Create D1 Database Named navigation, then goto control panel to run the following initializing code:
+
+-
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/adamj001/cloudflare-navi)
+
+**一个优雅、现代化的网站导航管理系统**
+基于 Cloudflare Workers 构建 • 零成本部署 • 全球 CDN 加速 • 企业级安全
+
+[📖 完整文档](https://zqq-nuli.github.io/Cloudflare-Navihive/) • [🎮 在线演示](https://navihive.chatbot.cab/) • [🚀 快速开始](https://zqq-nuli.github.io/Cloudflare-Navihive/deployment/) • [💬 问题反馈](https://github.com/zqq-nuli/Cloudflare-Navihive/issues)
+
+</div>
+
+> 部署过程中遇到问题，暂时可参阅 V1.1.0版本[部署教程](https://github.com/zqq-nuli/Cloudflare-Navihive/tree/v1.1.0)暂时我可能没有那么多时间来修正文档的问题，实在抱歉。databse
+
+## 🎯 快速开始,
 
 
 ### 在线演示
